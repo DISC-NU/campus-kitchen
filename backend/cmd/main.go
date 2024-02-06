@@ -3,6 +3,7 @@ package main
 import (
 	"backend/db"
 	"backend/user"
+	"backend/validator"
 	"context"
 	"log"
 	"net/http"
@@ -17,6 +18,8 @@ import (
 )
 
 func main() {
+	validator := validator.New()
+
 	// Load connection string from .env file
 	err := godotenv.Load()
 	if err != nil {
@@ -35,7 +38,7 @@ func main() {
 	r := chi.NewRouter()
 	server := http.Server{
 		Addr:    ServerPort,
-		Handler: setupHandler(r, conn),
+		Handler: setupHandler(r, conn, &validator),
 	}
 
 	// Graceful shutdown
@@ -58,7 +61,7 @@ func main() {
 	log.Println("Server exited")
 }
 
-func setupHandler(r chi.Router, conn *db.DB) chi.Router {
+func setupHandler(r chi.Router, conn *db.DB, validator *validator.Validate) chi.Router {
 	r.Use(middleware.Logger)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -66,8 +69,8 @@ func setupHandler(r chi.Router, conn *db.DB) chi.Router {
 	})
 
 	// Register user handlers
-	api := user.NewAPI(conn)
+	api := user.NewAPI(conn, validator)
 	api.RegisterHandlers(r)
-	
+
 	return r
 }

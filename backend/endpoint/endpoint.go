@@ -1,9 +1,17 @@
 package endpoint
 
 import (
+	"backend/validator"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+)
+
+const (
+	errMsgInvalidReq = "Invalid request"
+	// ErrMsgJSONDecode is an error message displayed to the API consumer when the server fails to decode the JSON body.
+	ErrMsgJSONDecode = "Failed to decode json request"
 )
 
 func WriteWithStatus(w http.ResponseWriter, statusCode int, data interface{}) {
@@ -37,4 +45,47 @@ func WriteWithError(w http.ResponseWriter, statusCode int, errMsg string) {
 		log.Printf("Failed to encode error response into JSON: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+}
+
+// buildDecodeErrorMsg formats the decode error and returns it as a string
+func buildDecodeErrorMsg(field string, want string, got string) string {
+	return fmt.Sprintf("Expected %s to be %s, got %s", field, want, got)
+}
+
+// HandleDecodeErr responds with the appropriate decode error msg and sets
+// the http status to 400
+func HandleDecodeErr(w http.ResponseWriter, err error) {
+	errMsg := ErrMsgJSONDecode
+	if err, ok := err.(*json.UnmarshalTypeError); ok {
+		errMsg = buildDecodeErrorMsg(err.Field, err.Type.String(), err.Value)
+	}
+
+	WriteWithError(w, http.StatusBadRequest, errMsg)
+}
+
+// WriteValidationErr responds with the appropriate validation error msg and
+// sets the http status to 400
+func WriteValidationErr(w http.ResponseWriter, s interface{}, err error) {
+	errMsg := errMsgInvalidReq
+	validationErrMsg := validator.GetValidationErrMsg(s, err)
+	if validationErrMsg != "" {
+		errMsg = validationErrMsg
+	}
+
+	WriteWithError(w, http.StatusBadRequest, errMsg)
+}
+
+func DecodeAndValidate(w http.ResponseWriter, r *http.Request, validator *validator.Validate, output interface{}) error {
+	if err := json.NewDecoder(r.Body).Decode(output); err != nil {
+		log.Printf("api: failed to decode request: %v", err)
+		HandleDecodeErr(w, err)
+		return err
+	}
+
+	if err := validator.Struct(output); err != nil {
+		log.Printf("api: failed to validate input: %v", err)
+		WriteValidationErr(w, output, err)
+		return err
+	}
+	return nil
 }

@@ -3,8 +3,8 @@ package user
 import (
 	"backend/db"
 	"backend/endpoint"
+	"backend/validator"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -13,34 +13,35 @@ import (
 
 // API represents a struct for the user API
 type API struct {
-	db *db.DB
-	q  *db.Queries
+	db        *db.DB
+	q         *db.Queries
+	validator *validator.Validate
 }
 
 // NewAPI initializes an API struct
-func NewAPI(conn *db.DB) API {
+func NewAPI(conn *db.DB, v *validator.Validate) API {
 	q := db.New(conn)
 	return API{
-		db: conn,
-		q:  q,
+		db:        conn,
+		q:         q,
+		validator: v,
 	}
 }
 
 type GetUserInput struct {
-	ID int32 `json:"id"`
+	ID int32 `json:"id" validate:"required"`
 }
 
 // HandleGetUser returns a user by ID
 func (api *API) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 
 	var input GetUserInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	err := endpoint.DecodeAndValidate(w, r, api.validator, &input)
+	if err != nil {
 		return
 	}
 
-	ctx := r.Context()
-	user, err := api.q.GetUser(ctx, input.ID)
+	user, err := api.q.GetUser(r.Context(), input.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			endpoint.WriteWithError(w, http.StatusNotFound, "User not found")
