@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend/db"
+	"backend/user"
 	"context"
 	"log"
 	"net/http"
@@ -61,8 +62,12 @@ func setupHandler(r chi.Router, conn *db.DB) chi.Router {
 	r.Use(middleware.Logger)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Welcome to the API"))
+		w.Write([]byte("Hello!"))
 	})
 
+	// Register user handlers
+	api := user.NewAPI(conn)
+	api.RegisterHandlers(r)
+	
 	return r
 }

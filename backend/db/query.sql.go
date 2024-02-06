@@ -10,19 +10,18 @@ import (
 )
 
 const getUser = `-- name: GetUser :one
-SELECT volunteer_name, volunteer_type, total_hours_volunteered, total_pounds_food_recovered, total_number_meals_given FROM users
-WHERE users.id = $1
+SELECT id, name, email, type FROM users
+WHERE users.id = ?
 `
 
-func (q *Queries) GetUser(ctx context.Context) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUser)
+func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUser, id)
 	var i User
 	err := row.Scan(
-		&i.VolunteerName,
-		&i.VolunteerType,
-		&i.TotalHoursVolunteered,
-		&i.TotalPoundsFoodRecovered,
-		&i.TotalNumberMealsGiven,
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Type,
 	)
 	return i, err
 }

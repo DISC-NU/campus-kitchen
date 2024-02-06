@@ -9,52 +9,51 @@ import (
 	"fmt"
 )
 
-type UsersVolunteerType string
+type UsersType string
 
 const (
-	UsersVolunteerTypeVolunteer UsersVolunteerType = "volunteer"
-	UsersVolunteerTypeShiftLead UsersVolunteerType = "shift_lead"
+	UsersTypeVolunteer UsersType = "volunteer"
+	UsersTypeShiftLead UsersType = "shift_lead"
 )
 
-func (e *UsersVolunteerType) Scan(src interface{}) error {
+func (e *UsersType) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = UsersVolunteerType(s)
+		*e = UsersType(s)
 	case string:
-		*e = UsersVolunteerType(s)
+		*e = UsersType(s)
 	default:
-		return fmt.Errorf("unsupported scan type for UsersVolunteerType: %T", src)
+		return fmt.Errorf("unsupported scan type for UsersType: %T", src)
 	}
 	return nil
 }
 
-type NullUsersVolunteerType struct {
-	UsersVolunteerType UsersVolunteerType
-	Valid              bool // Valid is true if UsersVolunteerType is not NULL
+type NullUsersType struct {
+	UsersType UsersType
+	Valid     bool // Valid is true if UsersType is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullUsersVolunteerType) Scan(value interface{}) error {
+func (ns *NullUsersType) Scan(value interface{}) error {
 	if value == nil {
-		ns.UsersVolunteerType, ns.Valid = "", false
+		ns.UsersType, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.UsersVolunteerType.Scan(value)
+	return ns.UsersType.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullUsersVolunteerType) Value() (driver.Value, error) {
+func (ns NullUsersType) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.UsersVolunteerType), nil
+	return string(ns.UsersType), nil
 }
 
 type User struct {
-	VolunteerName            string
-	VolunteerType            UsersVolunteerType
-	TotalHoursVolunteered    float64
-	TotalPoundsFoodRecovered float64
-	TotalNumberMealsGiven    float64
+	ID    int32
+	Name  string
+	Email string
+	Type  UsersType
 }

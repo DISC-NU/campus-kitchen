@@ -1,1 +1,0 @@
-RENAME TABLE Person TO users;
