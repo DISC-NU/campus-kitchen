@@ -11,6 +11,11 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// Error messages
+const (
+	ErrUserNotFound = "User not found"
+)
+
 // API represents a struct for the user API
 type API struct {
 	q         *db.Queries
@@ -42,7 +47,7 @@ func (api *API) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 	user, err := api.q.GetUser(r.Context(), input.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			endpoint.WriteWithError(w, http.StatusNotFound, "User not found")
+			endpoint.WriteWithError(w, http.StatusNotFound, ErrUserNotFound)
 			return
 		}
 		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
