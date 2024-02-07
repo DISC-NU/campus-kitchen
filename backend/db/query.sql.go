@@ -7,7 +7,23 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
+
+const createUser = `-- name: CreateUser :execresult
+INSERT INTO users (name, email, type)
+VALUES (?, ?, ?)
+`
+
+type CreateUserParams struct {
+	Name  string
+	Email string
+	Type  UsersType
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createUser, arg.Name, arg.Email, arg.Type)
+}
 
 const getUser = `-- name: GetUser :one
 SELECT id, name, email, type FROM users
@@ -16,6 +32,23 @@ WHERE users.id = ?
 
 func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUser, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Type,
+	)
+	return i, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, name, email, type FROM users
+WHERE users.email = ?
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.ID,
