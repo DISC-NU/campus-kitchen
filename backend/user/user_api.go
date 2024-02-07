@@ -3,17 +3,13 @@ package user
 import (
 	"backend/db"
 	"backend/endpoint"
+	server_error "backend/error"
 	"backend/validator"
 	"database/sql"
 	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-)
-
-// Error messages
-const (
-	ErrUserNotFound = "User not found"
 )
 
 // API represents a struct for the user API
@@ -47,7 +43,7 @@ func (api *API) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 	user, err := api.q.GetUser(r.Context(), input.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			endpoint.WriteWithError(w, http.StatusNotFound, ErrUserNotFound)
+			endpoint.WriteWithError(w, http.StatusNotFound, server_error.ErrUserNotFound)
 			return
 		}
 		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
