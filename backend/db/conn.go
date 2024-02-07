@@ -1,9 +1,9 @@
 package db
 
 import (
+	"backend/config"
 	"database/sql"
 	"log"
-	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -12,8 +12,8 @@ type DB struct {
 	*sql.DB
 }
 
-func Connect() (*DB, error) {
-	db, err := sql.Open("mysql", os.Getenv("DSN"))
+func Connect(config *config.Config) (*DB, error) {
+	db, err := sql.Open("mysql", config.DbConnectionString)
 	if err != nil {
 		log.Fatalf("Failed to connect: %v", err)
 	}

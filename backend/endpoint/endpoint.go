@@ -75,7 +75,7 @@ func WriteValidationErr(w http.ResponseWriter, s interface{}, err error) {
 	WriteWithError(w, http.StatusBadRequest, errMsg)
 }
 
-func DecodeAndValidate(w http.ResponseWriter, r *http.Request, validator *validator.Validate, output interface{}) error {
+func DecodeAndValidateJson(w http.ResponseWriter, r *http.Request, validator *validator.Validate, output interface{}) error {
 	if err := json.NewDecoder(r.Body).Decode(output); err != nil {
 		log.Printf("api: failed to decode request: %v", err)
 		HandleDecodeErr(w, err)

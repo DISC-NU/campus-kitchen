@@ -13,7 +13,6 @@ import (
 
 // API represents a struct for the user API
 type API struct {
-	db        *db.DB
 	q         *db.Queries
 	validator *validator.Validate
 }
@@ -22,7 +21,6 @@ type API struct {
 func NewAPI(conn *db.DB, v *validator.Validate) API {
 	q := db.New(conn)
 	return API{
-		db:        conn,
 		q:         q,
 		validator: v,
 	}
@@ -36,7 +34,7 @@ type GetUserInput struct {
 func (api *API) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 
 	var input GetUserInput
-	err := endpoint.DecodeAndValidate(w, r, api.validator, &input)
+	err := endpoint.DecodeAndValidateJson(w, r, api.validator, &input)
 	if err != nil {
 		return
 	}

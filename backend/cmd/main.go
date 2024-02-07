@@ -1,6 +1,7 @@
 package main
 
 import (
+	"backend/config"
 	"backend/db"
 	"backend/user"
 	"backend/validator"
@@ -14,26 +15,20 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/joho/godotenv"
 )
 
 func main() {
 	validator := validator.New()
+	config := config.LoadConfig(".")
 
-	// Load connection string from .env file
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("failed to load env", err)
-	}
-
-	conn, err := db.Connect()
+	conn, err := db.Connect(&config)
 	if err != nil {
 		log.Fatalf("Error to connecting to db: %v", err)
 	}
 	db.TestConnection(conn)
 	defer conn.Close()
 
-	ServerPort := ":3000"
+	ServerPort := ":8080"
 	// Setup server
 	r := chi.NewRouter()
 	server := http.Server{
