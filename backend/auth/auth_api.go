@@ -18,9 +18,17 @@ import (
 
 // API represents a struct for the user API
 type API struct {
-	q         *db.Queries
+	q *db.Queries
 	// validator *validator.Validate
-	config    *config.Config
+	config *config.Config
+}
+
+func NewAPI(conn *db.DB, config *config.Config) *API {
+	q := db.New(conn)
+	return &API{
+		q:      q,
+		config: config,
+	}
 }
 
 func (api *API) HandleGoogleOauth(w http.ResponseWriter, r *http.Request) {
@@ -40,15 +48,17 @@ func (api *API) HandleGoogleOauth(w http.ResponseWriter, r *http.Request) {
 		endpoint.WriteWithError(w, http.StatusBadRequest, server_error.ErrMsgInvalidReq)
 		return
 	}
-
+	log.Println("code", code)
 	tokenRes, err := GetGoogleOauthToken(api.config, code)
 	if err != nil {
+		log.Printf("Failed to get google oauth token: %v", err)
 		endpoint.WriteWithError(w, http.StatusInternalServerError, server_error.ErrInternalServerError)
 		return
 	}
 
 	user, err := GetGoogleUser(tokenRes.Access_token, tokenRes.Id_token)
 	if err != nil {
+		log.Printf("Failed to get google user: %v", err)
 		endpoint.WriteWithError(w, http.StatusInternalServerError, server_error.ErrInternalServerError)
 		return
 	}
@@ -104,7 +114,7 @@ func (api *API) HandleGoogleOauth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *API) RegisterHandlers(r chi.Router) {
-	r.Route("/auth/google/redirect", func(r chi.Router) {
-		r.Get("/", api.HandleGoogleOauth)
+	r.Route("/auth/", func(r chi.Router) {
+		r.Get("/google/callback", api.HandleGoogleOauth)
 	})
 }

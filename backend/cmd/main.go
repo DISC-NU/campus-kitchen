@@ -1,6 +1,7 @@
 package main
 
 import (
+	"backend/auth"
 	"backend/config"
 	"backend/db"
 	"backend/user"
@@ -33,7 +34,7 @@ func main() {
 	r := chi.NewRouter()
 	server := http.Server{
 		Addr:    ServerPort,
-		Handler: setupHandler(r, conn, &validator),
+		Handler: setupHandler(r, conn, &validator, &config),
 	}
 
 	// Graceful shutdown
@@ -56,16 +57,19 @@ func main() {
 	log.Println("Server exited")
 }
 
-func setupHandler(r chi.Router, conn *db.DB, validator *validator.Validate) chi.Router {
+func setupHandler(r chi.Router, conn *db.DB, validator *validator.Validate, config *config.Config) chi.Router {
 	r.Use(middleware.Logger)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello!"))
 	})
 
-	// Register user handlers
-	api := user.NewAPI(conn, validator)
-	api.RegisterHandlers(r)
+	// Register handlers
+	user_api := user.NewAPI(conn, validator)
+	user_api.RegisterHandlers(r)
+
+	auth_api := auth.NewAPI(conn, config)
+	auth_api.RegisterHandlers(r)
 
 	return r
 }

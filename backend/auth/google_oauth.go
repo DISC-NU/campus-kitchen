@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -22,10 +23,10 @@ func GetGoogleOauthToken(config *config.Config, code string) (*GoogleOauthToken,
 
 	values := url.Values{}
 	values.Add("grant_type", "authorization_code")
-	values.Add("code", code)
-	values.Add("client_id", config.GoogleClientID)
-	values.Add("client_secret", config.GoogleClientSecret)
 	values.Add("redirect_uri", config.GoogleOAuthRedirectUrl)
+	values.Add("client_id", config.GoogleClientID)
+	values.Add("code", code)
+	values.Add("client_secret", config.GoogleClientSecret)
 
 	query := values.Encode()
 
@@ -45,6 +46,14 @@ func GetGoogleOauthToken(config *config.Config, code string) (*GoogleOauthToken,
 	}
 
 	if res.StatusCode != http.StatusOK {
+		// get error message
+		var resBody bytes.Buffer
+		_, err = io.Copy(&resBody, res.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		log.Printf("Failed to get google oauth token: %v", resBody.String())
 		return nil, errors.New("could not retrieve token")
 	}
 
