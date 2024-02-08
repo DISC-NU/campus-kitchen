@@ -21,6 +21,7 @@ import (
 func main() {
 	validator := validator.New()
 	config := config.LoadConfig(".")
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	conn, err := db.Connect(&config)
 	if err != nil {

@@ -5,7 +5,7 @@ function App() {
   return (
     <div>
       <h1>App</h1>
-      <a href={getGoogleUrl("")}>login</a>
+      <a href={getGoogleUrl('/')}>login</a>
     </div>
   );
 }

@@ -14,8 +14,8 @@ import (
 )
 
 type GoogleOauthToken struct {
-	Access_token string
-	Id_token     string
+	Access_token string `json:"access_token"`
+	Id_token     string `json:"id_token"`
 }
 
 func GetGoogleOauthToken(config *config.Config, code string) (*GoogleOauthToken, error) {
@@ -63,18 +63,12 @@ func GetGoogleOauthToken(config *config.Config, code string) (*GoogleOauthToken,
 		return nil, err
 	}
 
-	var GoogleOauthTokenRes map[string]interface{}
+    var GoogleOauthRes GoogleOauthToken
+    if err := json.Unmarshal(resBody.Bytes(), &GoogleOauthRes); err != nil {
+        return nil, err
+    }
 
-	if err := json.Unmarshal(resBody.Bytes(), &GoogleOauthTokenRes); err != nil {
-		return nil, err
-	}
-
-	tokenBody := &GoogleOauthToken{
-		Access_token: GoogleOauthTokenRes["access_token"].(string),
-		Id_token:     GoogleOauthTokenRes["id_token"].(string),
-	}
-
-	return tokenBody, nil
+    return &GoogleOauthRes, nil
 }
 
 type GoogleUserResult struct {
@@ -117,21 +111,11 @@ func GetGoogleUser(access_token string, id_token string) (*GoogleUserResult, err
 		return nil, err
 	}
 
-	var GoogleUserRes map[string]interface{}
+	var GoogleUserRes GoogleUserResult
 
 	if err := json.Unmarshal(resBody.Bytes(), &GoogleUserRes); err != nil {
 		return nil, err
 	}
 
-	userBody := &GoogleUserResult{
-		Id:             GoogleUserRes["id"].(string),
-		Email:          GoogleUserRes["email"].(string),
-		Verified_email: GoogleUserRes["verified_email"].(bool),
-		Name:           GoogleUserRes["name"].(string),
-		Given_name:     GoogleUserRes["given_name"].(string),
-		Picture:        GoogleUserRes["picture"].(string),
-		Locale:         GoogleUserRes["locale"].(string),
-	}
-
-	return userBody, nil
+	return &GoogleUserRes, nil
 }

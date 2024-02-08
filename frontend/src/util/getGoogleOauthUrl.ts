@@ -10,10 +10,9 @@ export const getGoogleUrl = (state: string) => {
     response_type: "code",
     prompt: "consent",
     scope: [
-      "https://www.googleapis.com/auth/userinfo.profile",
       "https://www.googleapis.com/auth/userinfo.email",
     ].join(" "),
-    state: JSON.stringify(state),
+    state: state,
   };
 
   const qs = new URLSearchParams(options);

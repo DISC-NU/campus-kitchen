@@ -48,20 +48,26 @@ func (api *API) HandleGoogleOauth(w http.ResponseWriter, r *http.Request) {
 		endpoint.WriteWithError(w, http.StatusBadRequest, server_error.ErrMsgInvalidReq)
 		return
 	}
-	log.Println("code", code)
+	// log.Println("code", code)
 	tokenRes, err := GetGoogleOauthToken(api.config, code)
 	if err != nil {
 		log.Printf("Failed to get google oauth token: %v", err)
 		endpoint.WriteWithError(w, http.StatusInternalServerError, server_error.ErrInternalServerError)
 		return
 	}
-
+	// log.Println("tokenRes", tokenRes)
+	if tokenRes.Access_token == "" || tokenRes.Id_token == "" {
+		log.Printf("Failed to get google oauth token: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, server_error.ErrInternalServerError)
+		return
+	}
 	user, err := GetGoogleUser(tokenRes.Access_token, tokenRes.Id_token)
 	if err != nil {
 		log.Printf("Failed to get google user: %v", err)
 		endpoint.WriteWithError(w, http.StatusInternalServerError, server_error.ErrInternalServerError)
 		return
 	}
+	log.Println("user", user)
 
 	userFromDB, err := api.q.GetUserByEmail(r.Context(), strings.ToLower(user.Email))
 	var userID int64
@@ -108,8 +114,9 @@ func (api *API) HandleGoogleOauth(w http.ResponseWriter, r *http.Request) {
 		Secure:   false,
 		HttpOnly: true,
 	})
-
-	http.Redirect(w, r, fmt.Sprint(api.config.FrontEndOrigin, pathUrl), http.StatusTemporaryRedirect)
+	redirect_url := fmt.Sprint(api.config.FrontEndOrigin, pathUrl)
+	log.Println("redirect_url", redirect_url)
+	http.Redirect(w, r, redirect_url, http.StatusTemporaryRedirect)
 
 }
 
