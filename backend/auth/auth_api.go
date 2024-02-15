@@ -5,6 +5,7 @@ import (
 	"backend/db"
 	"backend/endpoint"
 	server_error "backend/error"
+
 	// "backend/validator"
 	"database/sql"
 	"errors"
@@ -70,7 +71,7 @@ func (api *API) HandleGoogleOauth(w http.ResponseWriter, r *http.Request) {
 	log.Println("user", user)
 
 	userFromDB, err := api.q.GetUserByEmail(r.Context(), strings.ToLower(user.Email))
-	var userID int64
+	var userID int
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			res, err := api.q.CreateUser(r.Context(), db.CreateUserParams{
@@ -90,33 +91,33 @@ func (api *API) HandleGoogleOauth(w http.ResponseWriter, r *http.Request) {
 				endpoint.WriteWithError(w, http.StatusInternalServerError, server_error.ErrInternalServerError)
 				return
 			}
-			userID = newUserID
+			userID = int(newUserID)
 		} else {
 			log.Printf("Failed to get user by email: %v", err)
 			endpoint.WriteWithError(w, http.StatusInternalServerError, server_error.ErrInternalServerError)
 			return
 		}
 	} else {
-		userID = int64(userFromDB.ID)
+		userID = int(userFromDB.ID)
 	}
 
-	token, err := GenerateToken(api.config.TokenExpiresIn, userID, api.config.JWTTokenSecret)
+	token, err := api.GenerateToken(userID)
 	if err != nil {
 		return
 	}
+	cookie := http.Cookie{
+		Name:   "token",
+		Value:  token,
+		Path:   "/",
+		MaxAge: api.config.TokenMaxAge,
+		SameSite: http.SameSiteNoneMode,
+		Secure:   true,
+	}
+	log.Println("cookie", cookie)
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "token",
-		Value:    token,
-		MaxAge:   api.config.TokenMaxAge * 60,
-		Path:     "/",
-		Domain:   "localhost",
-		Secure:   false,
-		HttpOnly: true,
-	})
+	http.SetCookie(w, &cookie)
 	redirect_url := fmt.Sprint(api.config.FrontEndOrigin, pathUrl)
-	log.Println("redirect_url", redirect_url)
-	http.Redirect(w, r, redirect_url, http.StatusTemporaryRedirect)
+	http.Redirect(w, r, redirect_url, http.StatusFound)
 
 }
 

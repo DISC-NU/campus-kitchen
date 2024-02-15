@@ -52,7 +52,7 @@ func (ns NullUsersType) Value() (driver.Value, error) {
 }
 
 type User struct {
-	ID    int32
+	ID    int
 	Name  string
 	Email string
 	Type  UsersType

@@ -5,4 +5,5 @@ const (
 	ErrMsgInvalidReq = "Invalid request"
 	ErrMsgJSONDecode = "Failed to decode json request"
 	ErrUserNotFound = "User not found"
+	ErrUnauthorized = "Unauthorized"
 )

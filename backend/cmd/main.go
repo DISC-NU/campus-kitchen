@@ -16,6 +16,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
 func main() {
@@ -58,19 +59,29 @@ func main() {
 	log.Println("Server exited")
 }
 
+
 func setupHandler(r chi.Router, conn *db.DB, validator *validator.Validate, config *config.Config) chi.Router {
+	r.Use(Cors())
 	r.Use(middleware.Logger)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello!"))
 	})
 
+	auth_api := auth.NewAPI(conn, config)
+	auth_guard := auth_api.Auth()
+	auth_api.RegisterHandlers(r)
 	// Register handlers
 	user_api := user.NewAPI(conn, validator)
-	user_api.RegisterHandlers(r)
-
-	auth_api := auth.NewAPI(conn, config)
-	auth_api.RegisterHandlers(r)
+	user_api.RegisterHandlers(r, auth_guard)
 
 	return r
+}
+
+// Cors is a middleware handler that sets the CORS configuration.
+func Cors() func(http.Handler) http.Handler {
+	return cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173"}, // Specify the exact origin
+		AllowCredentials: true,
+	})
 }
