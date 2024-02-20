@@ -9,3 +9,6 @@ VALUES (?, ?, ?);
 -- name: GetUserByEmail :one
 SELECT * FROM users
 WHERE users.email = ?;
+
+-- name: GetUsers :many
+SELECT * FROM users;
