@@ -51,7 +51,6 @@ export default function Home() {
         {users.map(user => (
           <li key={user.ID} className="border p-2 border-blue-500 text-red-600 font-semibold">
             Name: {user.Name || 'N/A'}, Email: {user.Email}, Type: {user.Type} 
-            {user.ID}
           </li>
         ))}
       </ul>
