@@ -1,5 +1,5 @@
 // src/main.tsx
-
+import "./index.css"
 import { createRoot } from 'react-dom/client'
 import { Routes } from '@generouted/react-router'
 
