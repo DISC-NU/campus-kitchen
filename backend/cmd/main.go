@@ -20,9 +20,16 @@ import (
 )
 
 func main() {
-	validator := validator.New()
-	config := config.LoadConfig(".")
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	validator := validator.New()
+	config := config.LoadConfig(".", &validator)
+
+	err := db.RunMigrations(config.DbMigrationConnectionString)
+	if err != nil {
+		log.Fatalf("Error running migrations: %v", err)
+	}
+	log.Println("Migrations run successfully")
 
 	conn, err := db.Connect(&config)
 	if err != nil {
@@ -58,7 +65,6 @@ func main() {
 	}
 	log.Println("Server exited")
 }
-
 
 func setupHandler(r chi.Router, conn *db.DB, validator *validator.Validate, config *config.Config) chi.Router {
 	r.Use(Cors())

@@ -49,7 +49,7 @@ export default function Home() {
 
       <ul className="">
         {users.map(user => (
-          <li key={user.ID} className="border p-2 border-blue-500 text-red-600 font-semibold">
+          <li key={user.ID} className="border p-8 border-blue-500 text-green-600 font-semibold">
             Name: {user.Name || 'N/A'}, Email: {user.Email}, Type: {user.Type} 
           </li>
         ))}
