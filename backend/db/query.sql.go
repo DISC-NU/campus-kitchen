@@ -90,3 +90,18 @@ func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
 	}
 	return items, nil
 }
+
+const updateUserName = `-- name: UpdateUserName :execresult
+UPDATE users
+SET name = ?
+WHERE users.id = ?
+`
+
+type UpdateUserNameParams struct {
+	Name string
+	ID   int32
+}
+
+func (q *Queries) UpdateUserName(ctx context.Context, arg UpdateUserNameParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updateUserName, arg.Name, arg.ID)
+}

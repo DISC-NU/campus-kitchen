@@ -8,9 +8,9 @@ import (
 	"backend/validator"
 	"database/sql"
 	"errors"
+	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strconv"
-	"github.com/go-chi/chi/v5"
 )
 
 // API represents a struct for the user API
@@ -36,22 +36,21 @@ func NewAPI(conn *db.DB, v *validator.Validate) API {
 
 func (api *API) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 
-
 	// // var input GetUserInput
 	// // err := endpoint.DecodeAndValidateJson(w, r, api.validator, &input)
 	// if err != nil {
 	// 	return
 	// }
 
-	id := chi.URLParam(r, "id");
+	id := chi.URLParam(r, "id")
 
-	result, err:= strconv.ParseInt(id, 10, 32)
+	result, err := strconv.ParseInt(id, 10, 32)
 	var id1 int32
 
-	if err!= nil {
+	if err != nil {
 		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
 		return
-	} else{
+	} else {
 		id1 = int32(result)
 	}
 
@@ -79,9 +78,6 @@ func (api *API) HandleGetUsers(w http.ResponseWriter, r *http.Request) {
 	endpoint.WriteWithStatus(w, http.StatusOK, user)
 }
 
-
-
-
 func (api *API) HandleGetMe(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, err := auth.UserIDFromContext(ctx)
@@ -103,11 +99,44 @@ func (api *API) HandleGetMe(w http.ResponseWriter, r *http.Request) {
 	endpoint.WriteWithStatus(w, http.StatusOK, user)
 }
 
+type UpdateUserNameRequest struct {
+	Name string `json:"name" validate:"required"`
+}
+
+func (api *API) HandleUpdateUserName(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, err := auth.UserIDFromContext(ctx)
+	if err != nil {
+		endpoint.WriteWithError(w, http.StatusUnauthorized, server_error.ErrUnauthorized)
+		return
+	}
+
+	var input UpdateUserNameRequest
+
+	err = endpoint.DecodeAndValidateJson(w, r, api.validator, &input)
+	if err != nil {
+		return
+	}
+
+	_, err = api.q.UpdateUserName(r.Context(), db.UpdateUserNameParams{
+		ID:   int32(userID),
+		Name: input.Name,
+	})
+
+	if err != nil {
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	endpoint.WriteWithStatus(w, http.StatusOK, nil)
+}
+
 func (api *API) RegisterHandlers(r chi.Router, auth_guard func(http.Handler) http.Handler) {
 	r.Route("/users", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(auth_guard)
 			r.Get("/me", api.HandleGetMe)
+			r.Post("/me/name", api.HandleUpdateUserName)
 		})
 		r.Get("/", api.HandleGetUsers)
 		r.Get("/{id}", api.HandleGetUser)

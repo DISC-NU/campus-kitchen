@@ -12,3 +12,8 @@ WHERE users.email = ?;
 
 -- name: GetUsers :many
 SELECT * FROM users;
+
+-- name: UpdateUserName :execresult
+UPDATE users
+SET name = ?
+WHERE users.id = ?;
