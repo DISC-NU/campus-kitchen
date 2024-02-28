@@ -40,7 +40,6 @@ export default function Home() {
     fetchUsers();
   }, []); 
   
-  console.log(data);
   return (
     <>
       <h1>Home</h1>
