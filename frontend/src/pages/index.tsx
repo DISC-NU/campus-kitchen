@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { getGoogleUrl } from "../util/getGoogleOauthUrl";
 import { useEffect, useState } from "react";
 
-
 type User = {
   ID: number;
   Name: string;
@@ -20,10 +19,10 @@ export default function Home() {
       }).then((res) => res.json()),
   });
 
-  const [users, setUsers] = useState<User[]>([]); // State to hold the fetched users
+  const [users, setUsers] = useState<User[]>([]);
+  const [newName, setNewName] = useState(""); // State to hold the new name input by the user
 
   useEffect(() => {
-    // Function to fetch users
     const fetchUsers = async () => {
       try {
         const response = await fetch('http://127.0.0.1:8080/users/');
@@ -39,7 +38,26 @@ export default function Home() {
 
     fetchUsers();
   }, []); 
-  
+
+  const updateUserName = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8080/users/me/name', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: newName }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update user name');
+      }
+      alert('Name updated successfully');
+    } catch (error) {
+      console.error('There was a problem updating the user name:', error);
+    }
+  };
+
   return (
     <>
       <h1>Home</h1>
@@ -53,6 +71,16 @@ export default function Home() {
           </li>
         ))}
       </ul>
+
+      <div>
+        <input
+          type="text"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          placeholder="New Name"
+        />
+        <button onClick={updateUserName}>Update Name</button>
+      </div>
 
       <a href={getGoogleUrl("/")}>Login with Google</a>
     </>
