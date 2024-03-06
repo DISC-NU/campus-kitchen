@@ -1,11 +1,3 @@
-CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    phone VARCHAR(255),
-    type ENUM('volunteer', 'shift_lead') NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS shifts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     start_time DATETIME NOT NULL,
@@ -18,14 +10,15 @@ CREATE TABLE IF NOT EXISTS shift_leaders (
     user_id INT NOT NULL,
     shift_id INT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (shift_id) REFERENCES shifts(id)
+    FOREIGN KEY (shift_id) REFERENCES shifts(id)    
 );
 
 CREATE TABLE IF NOT EXISTS shift_volunteers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     shift_id INT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (shift_id) REFERENCES shifts(id)
 );
 
 CREATE TABLE IF NOT EXISTS volunteer_completed_shifts (

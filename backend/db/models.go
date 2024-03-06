@@ -5,9 +5,54 @@
 package db
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"time"
 )
+
+type ShiftsType string
+
+const (
+	ShiftsTypeRecovery   ShiftsType = "recovery"
+	ShiftsTypeResourcing ShiftsType = "resourcing"
+	ShiftsTypeMealPrep   ShiftsType = "meal_prep"
+)
+
+func (e *ShiftsType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ShiftsType(s)
+	case string:
+		*e = ShiftsType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ShiftsType: %T", src)
+	}
+	return nil
+}
+
+type NullShiftsType struct {
+	ShiftsType ShiftsType
+	Valid      bool // Valid is true if ShiftsType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullShiftsType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ShiftsType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ShiftsType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullShiftsType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ShiftsType), nil
+}
 
 type UsersType string
 
@@ -51,9 +96,35 @@ func (ns NullUsersType) Value() (driver.Value, error) {
 	return string(ns.UsersType), nil
 }
 
+type Shift struct {
+	ID        int32
+	StartTime time.Time
+	EndTime   time.Time
+	Type      ShiftsType
+}
+
+type ShiftLeader struct {
+	ID      int32
+	UserID  int32
+	ShiftID int32
+}
+
+type ShiftVolunteer struct {
+	ID      int32
+	UserID  int32
+	ShiftID int32
+}
+
 type User struct {
 	ID    int32
 	Name  string
 	Email string
+	Phone sql.NullString
 	Type  UsersType
+}
+
+type VolunteerCompletedShift struct {
+	ID      int32
+	UserID  int32
+	ShiftID int32
 }

@@ -8,7 +8,37 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 )
+
+const createShift = `-- name: CreateShift :execresult
+INSERT INTO shifts (start_time, end_time, type)
+VALUES (?, ?, ?)
+`
+
+type CreateShiftParams struct {
+	StartTime time.Time
+	EndTime   time.Time
+	Type      ShiftsType
+}
+
+func (q *Queries) CreateShift(ctx context.Context, arg CreateShiftParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createShift, arg.StartTime, arg.EndTime, arg.Type)
+}
+
+const createShiftVolunteer = `-- name: CreateShiftVolunteer :execresult
+INSERT INTO shift_volunteers (user_id, shift_id)
+VALUES (?, ?)
+`
+
+type CreateShiftVolunteerParams struct {
+	UserID  int32
+	ShiftID int32
+}
+
+func (q *Queries) CreateShiftVolunteer(ctx context.Context, arg CreateShiftVolunteerParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createShiftVolunteer, arg.UserID, arg.ShiftID)
+}
 
 const createUser = `-- name: CreateUser :execresult
 INSERT INTO users (name, email, type)
@@ -25,11 +55,212 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (sql.Res
 	return q.db.ExecContext(ctx, createUser, arg.Name, arg.Email, arg.Type)
 }
 
-const getUser = `-- name: GetUser :one
-SELECT id, name, email, type FROM users
+const deleteShift = `-- name: DeleteShift :execresult
+DELETE FROM shifts
+WHERE shifts.id = ?
+`
+
+func (q *Queries) DeleteShift(ctx context.Context, id int32) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteShift, id)
+}
+
+const deleteShiftVolunteer = `-- name: DeleteShiftVolunteer :execresult
+DELETE FROM shift_volunteers
+WHERE shift_volunteers.user_id = ? AND shift_volunteers.shift_id = ?
+`
+
+type DeleteShiftVolunteerParams struct {
+	UserID  int32
+	ShiftID int32
+}
+
+func (q *Queries) DeleteShiftVolunteer(ctx context.Context, arg DeleteShiftVolunteerParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteShiftVolunteer, arg.UserID, arg.ShiftID)
+}
+
+const deleteUser = `-- name: DeleteUser :execresult
+DELETE FROM users
 WHERE users.id = ?
 `
 
+func (q *Queries) DeleteUser(ctx context.Context, id int32) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteUser, id)
+}
+
+const getShift = `-- name: GetShift :one
+SELECT id, start_time, end_time, type FROM shifts
+WHERE shifts.id = ?
+`
+
+func (q *Queries) GetShift(ctx context.Context, id int32) (Shift, error) {
+	row := q.db.QueryRowContext(ctx, getShift, id)
+	var i Shift
+	err := row.Scan(
+		&i.ID,
+		&i.StartTime,
+		&i.EndTime,
+		&i.Type,
+	)
+	return i, err
+}
+
+const getShiftLeadersForShift = `-- name: GetShiftLeadersForShift :many
+SELECT users.id, users.name, users.email, users.phone, users.type
+FROM users
+JOIN shift_leaders ON users.id = shift_leaders.user_id
+WHERE shift_leaders.shift_id = ?
+`
+
+func (q *Queries) GetShiftLeadersForShift(ctx context.Context, shiftID int32) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, getShiftLeadersForShift, shiftID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Email,
+			&i.Phone,
+			&i.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getShiftVolunteersForShift = `-- name: GetShiftVolunteersForShift :many
+SELECT users.id, users.name, users.email, users.phone, users.type
+FROM users
+JOIN shift_volunteers ON users.id = shift_volunteers.user_id
+WHERE shift_volunteers.shift_id = ?
+`
+
+func (q *Queries) GetShiftVolunteersForShift(ctx context.Context, shiftID int32) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, getShiftVolunteersForShift, shiftID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Email,
+			&i.Phone,
+			&i.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getShifts = `-- name: GetShifts :many
+SELECT id, start_time, end_time, type FROM shifts
+`
+
+func (q *Queries) GetShifts(ctx context.Context) ([]Shift, error) {
+	rows, err := q.db.QueryContext(ctx, getShifts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Shift
+	for rows.Next() {
+		var i Shift
+		if err := rows.Scan(
+			&i.ID,
+			&i.StartTime,
+			&i.EndTime,
+			&i.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUser = `-- name: GetUser :one
+
+
+
+
+
+SELECT id, name, email, phone, type FROM users
+WHERE users.id = ?
+`
+
+// CREATE TABLE IF NOT EXISTS users (
+//
+//	id INT AUTO_INCREMENT PRIMARY KEY,
+//	name VARCHAR(255) NOT NULL,
+//	email VARCHAR(255) UNIQUE NOT NULL,
+//	phone VARCHAR(255),
+//	type ENUM('volunteer', 'shift_lead') NOT NULL
+//
+// );
+// CREATE TABLE IF NOT EXISTS shifts (
+//
+//	id INT AUTO_INCREMENT PRIMARY KEY,
+//	start_time DATETIME NOT NULL,
+//	end_time DATETIME NOT NULL,
+//	type ENUM('recovery', 'resourcing', 'meal_prep') NOT NULL
+//
+// );
+// CREATE TABLE IF NOT EXISTS shift_leaders (
+//
+//	id INT AUTO_INCREMENT PRIMARY KEY,
+//	user_id INT NOT NULL,
+//	shift_id INT NOT NULL,
+//	FOREIGN KEY (user_id) REFERENCES users(id),
+//	FOREIGN KEY (shift_id) REFERENCES shifts(id)
+//
+// );
+// CREATE TABLE IF NOT EXISTS shift_volunteers (
+//
+//	id INT AUTO_INCREMENT PRIMARY KEY,
+//	user_id INT NOT NULL,
+//	shift_id INT NOT NULL,
+//	FOREIGN KEY (user_id) REFERENCES users(id)
+//
+// );
+// CREATE TABLE IF NOT EXISTS volunteer_completed_shifts (
+//
+//	id INT AUTO_INCREMENT PRIMARY KEY,
+//	user_id INT NOT NULL,
+//	shift_id INT NOT NULL,
+//	FOREIGN KEY (user_id) REFERENCES users(id),
+//	FOREIGN KEY (shift_id) REFERENCES shifts(id)
+//
+// );
 func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUser, id)
 	var i User
@@ -37,13 +268,14 @@ func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
 		&i.ID,
 		&i.Name,
 		&i.Email,
+		&i.Phone,
 		&i.Type,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, name, email, type FROM users
+SELECT id, name, email, phone, type FROM users
 WHERE users.email = ?
 `
 
@@ -54,13 +286,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.ID,
 		&i.Name,
 		&i.Email,
+		&i.Phone,
 		&i.Type,
 	)
 	return i, err
 }
 
 const getUsers = `-- name: GetUsers :many
-SELECT id, name, email, type FROM users
+SELECT id, name, email, phone, type FROM users
 `
 
 func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
@@ -76,6 +309,7 @@ func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
 			&i.ID,
 			&i.Name,
 			&i.Email,
+			&i.Phone,
 			&i.Type,
 		); err != nil {
 			return nil, err
@@ -89,6 +323,28 @@ func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateShift = `-- name: UpdateShift :execresult
+UPDATE shifts
+SET start_time = ?, end_time = ?, type = ?
+WHERE shifts.id = ?
+`
+
+type UpdateShiftParams struct {
+	StartTime time.Time
+	EndTime   time.Time
+	Type      ShiftsType
+	ID        int32
+}
+
+func (q *Queries) UpdateShift(ctx context.Context, arg UpdateShiftParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updateShift,
+		arg.StartTime,
+		arg.EndTime,
+		arg.Type,
+		arg.ID,
+	)
 }
 
 const updateUserName = `-- name: UpdateUserName :execresult

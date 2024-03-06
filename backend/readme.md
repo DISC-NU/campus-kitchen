@@ -1,0 +1,1 @@
+database integration, migrations, schema management, json validation, error handling, authentication, logging, environtment var config management and the file structure

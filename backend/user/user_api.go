@@ -8,9 +8,11 @@ import (
 	"backend/validator"
 	"database/sql"
 	"errors"
-	"github.com/go-chi/chi/v5"
+	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // API represents a struct for the user API
@@ -35,12 +37,6 @@ func NewAPI(conn *db.DB, v *validator.Validate) API {
 //HandleGetUser returns a user by ID
 
 func (api *API) HandleGetUser(w http.ResponseWriter, r *http.Request) {
-
-	// // var input GetUserInput
-	// // err := endpoint.DecodeAndValidateJson(w, r, api.validator, &input)
-	// if err != nil {
-	// 	return
-	// }
 
 	id := chi.URLParam(r, "id")
 
@@ -71,6 +67,7 @@ func (api *API) HandleGetUsers(w http.ResponseWriter, r *http.Request) {
 
 	user, err := api.q.GetUsers(r.Context())
 	if err != nil {
+		log.Printf("Error get user from database: %v", err)
 		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -124,11 +121,12 @@ func (api *API) HandleUpdateUserName(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
+		log.Printf("Error update user name: %v", err)
 		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	endpoint.WriteWithStatus(w, http.StatusOK, nil)
+	endpoint.WriteWithStatus(w, http.StatusOK, "update success")
 }
 
 func (api *API) RegisterHandlers(r chi.Router, auth_guard func(http.Handler) http.Handler) {

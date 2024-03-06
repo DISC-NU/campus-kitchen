@@ -4,6 +4,7 @@ import (
 	"backend/auth"
 	"backend/config"
 	"backend/db"
+	"backend/shift"
 	"backend/user"
 	"backend/validator"
 	"context"
@@ -77,9 +78,13 @@ func setupHandler(r chi.Router, conn *db.DB, validator *validator.Validate, conf
 	auth_api := auth.NewAPI(conn, config)
 	auth_guard := auth_api.Auth()
 	auth_api.RegisterHandlers(r)
+
 	// Register handlers
 	user_api := user.NewAPI(conn, validator)
 	user_api.RegisterHandlers(r, auth_guard)
+
+	shift_api := shift.NewAPI(conn, validator)
+	shift_api.RegisterHandlers(r, auth_guard)
 
 	return r
 }
