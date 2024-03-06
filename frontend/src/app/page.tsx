@@ -1,7 +1,32 @@
-import { useQuery } from "@tanstack/react-query";
-import { getGoogleUrl } from "../util/getGoogleOauthUrl";
-import { useState } from "react";
+"use client";
+
+import { useQuery } from "react-query";
+import { useEffect, useState } from "react";
 import { fetchUsers, getMeUser } from "../api";
+import React from "react";
+import Link from "next/link";
+
+export const REDIRECT_URL = "http://127.0.0.1:8080/auth/google/callback";
+export const GOOGLE_OAUTH_CLIENT_ID =
+  "519346730061-q5i3t15ji2r3fsrt88od7gsn92c0bhv8.apps.googleusercontent.com";
+
+export const getGoogleUrl = (state: string) => {
+  const rootUrl = `https://accounts.google.com/o/oauth2/v2/auth`;
+
+  const options = {
+    redirect_uri: REDIRECT_URL,
+    client_id: GOOGLE_OAUTH_CLIENT_ID,
+    access_type: "offline",
+    response_type: "code",
+    prompt: "consent",
+    scope: ["https://www.googleapis.com/auth/userinfo.email"].join(" "),
+    state: state,
+  };
+
+  const qs = new URLSearchParams(options);
+
+  return `${rootUrl}?${qs.toString()}`;
+};
 
 export default function Home() {
   const { data: meUser } = useQuery({
@@ -13,6 +38,17 @@ export default function Home() {
     queryFn: fetchUsers,
   });
   const [newName, setNewName] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+
+    if (token) {
+      console.log("Token:", token);
+      document.cookie = `token=${token}`;
+      window.history.replaceState({}, document.title, "/");
+    }
+  }, []);
 
   const updateUserName = async () => {
     try {
@@ -37,16 +73,13 @@ export default function Home() {
     <>
       <h1>Home</h1>
       <div>
-        <p className="text-lg">Welcome: {meUser?.Name ?? "not logged in"}</p>
+        <p className="text-lg">welcome: {meUser?.Name ?? "not logged in"}</p>
       </div>
 
       {users?.map((user) => (
-        <li
-          key={user.ID}
-          className="border p-8 border-blue-500 text-green-600 font-semibold"
-        >
+        <div key={user.ID} className="border py-2">
           Name: {user.Name || "N/A"}, Email: {user.Email}, Type: {user.Type}
-        </li>
+        </div>
       ))}
 
       <div>
@@ -59,12 +92,14 @@ export default function Home() {
         <button onClick={updateUserName}>Update Name</button>
       </div>
 
-      <a
+      <Link
         className="text-blue-500 hover:underline cursor-pointer"
         href={getGoogleUrl("/")}
       >
         Login with Google
-      </a>
+      </Link>
+      <Link href="/shifts">Shifts</Link>
+      <Link href="/create-shift">Create Shift</Link>
     </>
   );
 }

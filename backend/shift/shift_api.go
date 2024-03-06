@@ -4,6 +4,7 @@ import (
 	"backend/auth"
 	"backend/db"
 	"backend/endpoint"
+	"log"
 	"time"
 
 	server_error "backend/error"
@@ -499,10 +500,16 @@ func NewAPI(conn *db.DB, v *validator.Validate) API {
 // 	})
 // }
 
+// const (
+// 	ShiftsTypeRecovery   ShiftsType = "recovery"
+// 	ShiftsTypeResourcing ShiftsType = "resourcing"
+// 	ShiftsTypeMealPrep   ShiftsType = "meal_prep"
+// )
+
 type CreateShiftRequest struct {
 	StartTime time.Time `json:"start_time" validate:"required"`
 	EndTime   time.Time `json:"end_time" validate:"required"`
-	Type      string    `json:"type" validate:"required"`
+	Type      string    `json:"type" validate:"required,oneof=recovery resourcing meal_prep"`
 }
 
 func (api *API) HandleCreateShift(w http.ResponseWriter, r *http.Request) {
@@ -510,6 +517,7 @@ func (api *API) HandleCreateShift(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, err := auth.UserIDFromContext(ctx)
 	if err != nil {
+		log.Printf("Error get user id from context: %v", err)
 		endpoint.WriteWithError(w, http.StatusUnauthorized, server_error.ErrUnauthorized)
 		return
 	}
@@ -517,12 +525,14 @@ func (api *API) HandleCreateShift(w http.ResponseWriter, r *http.Request) {
 	// get user using user id
 	user, err := api.q.GetUser(ctx, int32(userID))
 	if err != nil {
+		log.Printf("Error get user from database: %v", err)
 		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	// check if user is shift leader
 	if user.Type != db.UsersTypeShiftLead {
+		log.Printf("User is not a shift leader")
 		endpoint.WriteWithError(w, http.StatusUnauthorized, server_error.ErrUnauthorized)
 		return
 	}
@@ -542,6 +552,7 @@ func (api *API) HandleCreateShift(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
+		log.Printf("Error create shift: %v", err)
 		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -553,6 +564,7 @@ func (api *API) HandleGetShifts(w http.ResponseWriter, r *http.Request) {
 
 	shifts, err := api.q.GetShifts(r.Context())
 	if err != nil {
+		log.Printf("Error get shifts from database: %v", err)
 		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

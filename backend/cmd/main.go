@@ -92,7 +92,7 @@ func setupHandler(r chi.Router, conn *db.DB, validator *validator.Validate, conf
 // Cors is a middleware handler that sets the CORS configuration.
 func Cors() func(http.Handler) http.Handler {
 	return cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"}, // Specify the exact origin
+		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:3001"}, // Specify the exact origin
 		AllowCredentials: true,
 	})
 }

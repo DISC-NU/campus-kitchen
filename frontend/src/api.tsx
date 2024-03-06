@@ -11,6 +11,13 @@ export type User = {
   };
 };
 
+export type Shift = {
+  ID: number;
+  StartTime: string;
+  EndTime: string;
+  Type: string;
+};
+
 export async function parseOrThrowResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const errMsg = await res.json();
@@ -43,5 +50,23 @@ export async function getMeUser(): Promise<User> {
     method: "GET",
     credentials: "include",
   });
+  return parseOrThrowResponse(response);
+}
+
+export async function createShift(param: { start_time: string; end_time: string; type: string }): Promise<void> {
+  console.log("createShift", param);
+  const response = await fetch(`${backendUrl}/shifts/`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(param),
+  });
+  return parseOrThrowResponse(response);
+}
+
+export async function fetchShifts(): Promise<Shift[]> {
+  const response = await fetch(`${backendUrl}/shifts/`);
   return parseOrThrowResponse(response);
 }

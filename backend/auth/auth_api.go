@@ -39,11 +39,11 @@ func (api *API) HandleGoogleOauth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	code := query.Get("code")
-	pathUrl := "/"
+	// pathUrl := "/"
 
-	if query.Get("state") != "" {
-		pathUrl = query.Get("state")
-	}
+	// if query.Get("state") != "" {
+		// pathUrl = query.Get("state")
+	// }
 
 	if code == "" {
 		endpoint.WriteWithError(w, http.StatusBadRequest, server_error.ErrMsgInvalidReq)
@@ -109,6 +109,7 @@ func (api *API) HandleGoogleOauth(w http.ResponseWriter, r *http.Request) {
 		Name:   "token",
 		Value:  token,
 		Path:   "/",
+		Domain: "",
 		MaxAge: api.config.TokenMaxAge,
 		SameSite: http.SameSiteNoneMode,
 		Secure:   true,
@@ -116,7 +117,9 @@ func (api *API) HandleGoogleOauth(w http.ResponseWriter, r *http.Request) {
 	log.Println("cookie", cookie)
 
 	http.SetCookie(w, &cookie)
-	redirect_url := fmt.Sprint(api.config.FrontEndOrigin, pathUrl)
+	
+	// attach token to the redirect url
+	redirect_url := fmt.Sprintf("%s?token=%s", api.config.FrontEndOrigin, token)
 	http.Redirect(w, r, redirect_url, http.StatusFound)
 
 }
