@@ -1,5 +1,5 @@
 "use client";
-import { useMutation, useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 import { useEffect, useState } from "react";
 import { fetchUsers, getMeUser } from "../api";
 import React from "react";
@@ -50,6 +50,8 @@ export default function Home() {
     }
   }, []);
 
+  const queryClient = useQueryClient();
+
   const updateUserNameMutation = useMutation(
     async () => {
       const response = await fetch("http://127.0.0.1:8080/users/me/name", {
@@ -68,6 +70,7 @@ export default function Home() {
     {
       onSuccess: () => {
         toast.success("Name updated successfully");
+        queryClient.invalidateQueries("me");
       },
     }
   );
@@ -75,7 +78,10 @@ export default function Home() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex justify-between items-center py-4">
-        <h1 className="text-2xl font-bold">Gaivn</h1>
+        <h1 className="text-2xl font-bold">
+          {meUser?.Name ?? "Welcome"}
+          {meUser?.Type === "shift_lead" ? " (Shift Lead)" : ""}
+        </h1>
         {meUser ? (
           <p className="text-lg">Welcome, {meUser.Name}</p>
         ) : (

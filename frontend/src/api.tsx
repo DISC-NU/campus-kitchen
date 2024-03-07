@@ -1,10 +1,12 @@
+import toast from "react-hot-toast";
+
 const backendUrl = "http://localhost:8080";
 
 export type User = {
   ID: number;
   Name: string;
   Email: string;
-  Type: string;
+  Type:  "volunteer" | "shift_lead";
   Phone: {
     String: string;
     Valid: boolean;
@@ -15,14 +17,14 @@ export type Shift = {
   ID: number;
   StartTime: string;
   EndTime: string;
-  Type: string;
+  Type: "volunteer" | "shift_lead";
 };
 
 export async function parseOrThrowResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const errMsg = await res.json();
-    console.error("error response", errMsg);
-    //   toast.error(errMsg.message || "An error occurred");
+    console.error("error response", errMsg.message);
+      // toast.error("Something went wrong: " + errMsg.message || "An error occurred");
     throw new Error(errMsg);
   }
   return res.json();
@@ -68,5 +70,13 @@ export async function createShift(param: { start_time: string; end_time: string;
 
 export async function fetchShifts(): Promise<Shift[]> {
   const response = await fetch(`${backendUrl}/shifts/`);
+  return parseOrThrowResponse(response);
+}
+
+export async function postToRegisterShift(param: number): Promise<void> {
+  const response = await fetch(`${backendUrl}/shifts/${param}/volunteer`, {
+    method: "POST",
+    credentials: "include",
+  });
   return parseOrThrowResponse(response);
 }

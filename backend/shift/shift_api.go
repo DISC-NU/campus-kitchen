@@ -574,7 +574,7 @@ func (api *API) HandleGetShifts(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *API) HandleRegisterVolunteerForShift(w http.ResponseWriter, r *http.Request) {
-	
+
 	shift_id_param := chi.URLParam(r, "id")
 
 	shift_id, err := strconv.ParseInt(shift_id_param, 10, 32)

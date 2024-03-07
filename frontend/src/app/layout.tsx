@@ -21,12 +21,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <QueryClientProvider client={queryClient}>
-        <Toaster />
-        <body className={inter.className}>{children}</body>
-      </QueryClientProvider>
-    </html>
+    <>
+      <html lang="en">
+        <QueryClientProvider client={queryClient}>
+          <body className={inter.className}>{children}</body>
+        </QueryClientProvider>
+      </html>
+    </>
   );
 }
 

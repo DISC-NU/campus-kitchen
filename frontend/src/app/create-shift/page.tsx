@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "react-query";
 import { createShift } from "../../api";
+import toast from "react-hot-toast";
 
 function CreateShift() {
   const [startTime, setStartTime] = useState<string>("");
@@ -15,6 +16,7 @@ function CreateShift() {
       console.error(error);
     },
     onSuccess: () => {
+      toast.success("Shift created");
       queryClient.invalidateQueries(["shifts"]);
     },
   });
@@ -33,7 +35,9 @@ function CreateShift() {
       <h1 className="text-2xl font-bold mb-5 text-center">Create New Shift</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Start Time</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Start Time
+          </label>
           <input
             type="datetime-local"
             value={startTime}
@@ -43,7 +47,9 @@ function CreateShift() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">End Time</label>
+          <label className="block text-sm font-medium text-gray-700">
+            End Time
+          </label>
           <input
             type="datetime-local"
             value={endTime}
@@ -53,15 +59,22 @@ function CreateShift() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Type</label>
-          <input
-            type="text"
+          <label className="block text-sm font-medium text-gray-700">
+            Type
+          </label>
+          <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            placeholder="Type"
             className="mt-1 block w-full border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 rounded-md"
             required
-          />
+          >
+            <option value="" disabled>
+              Select type
+            </option>{" "}
+            <option value="recovery">Recovery</option>
+            <option value="resourcing">Resourcing</option>
+            <option value="meal_prep">Meal Prep</option>
+          </select>
         </div>
         <button
           type="submit"
