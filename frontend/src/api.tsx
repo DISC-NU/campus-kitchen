@@ -80,3 +80,20 @@ export async function postToRegisterShift(param: number): Promise<void> {
   });
   return parseOrThrowResponse(response);
 }
+
+// type GetShiftResponse struct {
+// 	Shift      db.Shift  `json:"shift"`
+// 	Volunteers []db.User `json:"volunteers"`
+// 	Leaders    []db.User `json:"leaders"`
+// }
+
+type GetShiftResponse = {
+  shift: Shift;
+  volunteers: User[];
+  leaders: User[];
+};
+
+export async function getShift(id: number): Promise<GetShiftResponse> {
+  const response = await fetch(`${backendUrl}/shifts/${id}`);
+  return parseOrThrowResponse(response);
+}

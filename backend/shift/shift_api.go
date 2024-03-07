@@ -643,6 +643,60 @@ func (api *API) HandleGetShiftLeadersForShift(w http.ResponseWriter, r *http.Req
 	endpoint.WriteWithStatus(w, http.StatusOK, shift_leaders)
 }
 
+type GetShiftResponse struct {
+	Shift      db.Shift  `json:"shift"`
+	Volunteers []db.User `json:"volunteers"`
+	Leaders    []db.User `json:"leaders"`
+}
+
+func (api *API) HandleGetShift(w http.ResponseWriter, r *http.Request) {
+
+	shift_id_param := chi.URLParam(r, "id")
+
+	shift_id, err := strconv.ParseInt(shift_id_param, 10, 32)
+	if err != nil {
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	shift, err := api.q.GetShift(r.Context(), int32(shift_id))
+	if err != nil {
+		log.Printf("Error get shift from database: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	volunteers, err := api.q.GetShiftVolunteersForShift(r.Context(), int32(shift_id))
+	if err != nil {
+		log.Printf("Error get shift volunteers for shift from database: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	leaders, err := api.q.GetShiftLeadersForShift(r.Context(), int32(shift_id))
+	if err != nil {
+		log.Printf("Error get shift leaders for shift from database: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// if volunteerr or leader is null return []
+	if volunteers == nil {
+		volunteers = []db.User{}
+	}
+	if leaders == nil {
+		leaders = []db.User{}
+	}
+
+	resp := GetShiftResponse{
+		Shift:      shift,
+		Volunteers: volunteers,
+		Leaders:    leaders,
+	}
+
+	endpoint.WriteWithStatus(w, http.StatusOK, resp)
+}
+
 func (api *API) RegisterHandlers(r chi.Router, auth_guard func(http.Handler) http.Handler) {
 	r.Route("/shifts", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
@@ -650,6 +704,7 @@ func (api *API) RegisterHandlers(r chi.Router, auth_guard func(http.Handler) htt
 			r.Post("/", api.HandleCreateShift)
 			r.Post("/{id}/volunteer", api.HandleRegisterVolunteerForShift)
 		})
+		r.Get("/{id}", api.HandleGetShift)
 		r.Get("/", api.HandleGetShifts)
 	})
 }

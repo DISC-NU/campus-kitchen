@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "react-query";
 import { createShift } from "../../api";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 function CreateShift() {
   const [startTime, setStartTime] = useState<string>("");
@@ -11,6 +12,7 @@ function CreateShift() {
   const [type, setType] = useState<string>("");
   const queryClient = useQueryClient();
 
+  const router = useRouter();
   const mutation = useMutation(createShift, {
     onError: (error: any) => {
       console.error(error);
@@ -18,6 +20,7 @@ function CreateShift() {
     onSuccess: () => {
       toast.success("Shift created");
       queryClient.invalidateQueries(["shifts"]);
+      router.push("/shifts");
     },
   });
 
