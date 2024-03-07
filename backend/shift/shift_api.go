@@ -623,6 +623,26 @@ func (api *API) HandleRegisterVolunteerForShift(w http.ResponseWriter, r *http.R
 	endpoint.WriteWithStatus(w, http.StatusCreated, "volunteer registered for shift")
 }
 
+func (api *API) HandleGetShiftLeadersForShift(w http.ResponseWriter, r *http.Request) {
+
+	shift_id_param := chi.URLParam(r, "id")
+
+	shift_id, err := strconv.ParseInt(shift_id_param, 10, 32)
+	if err != nil {
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	shift_leaders, err := api.q.GetShiftLeadersForShift(r.Context(), int32(shift_id))
+	if err != nil {
+		log.Printf("Error get shift leaders for shift from database: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	endpoint.WriteWithStatus(w, http.StatusOK, shift_leaders)
+}
+
 func (api *API) RegisterHandlers(r chi.Router, auth_guard func(http.Handler) http.Handler) {
 	r.Route("/shifts", func(r chi.Router) {
 		r.Group(func(r chi.Router) {

@@ -24,6 +24,7 @@ export default function RootLayout({
     <>
       <html lang="en">
         <QueryClientProvider client={queryClient}>
+        {/* <Toaster /> */}
           <body className={inter.className}>{children}</body>
         </QueryClientProvider>
       </html>

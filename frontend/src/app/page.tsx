@@ -79,7 +79,7 @@ export default function Home() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex justify-between items-center py-4">
         <h1 className="text-2xl font-bold">
-          {meUser?.Name ?? "Welcome"}
+          {meUser?.Name ?? "Welcome, login to begin"}
           {meUser?.Type === "shift_lead" ? " (Shift Lead)" : ""}
         </h1>
         {meUser ? (
@@ -94,6 +94,17 @@ export default function Home() {
         )}
       </div>
 
+      <div className="flex space-x-4 mt-3">
+        <Link href="/shifts" className="text-blue-600 hover:underline text-lg">
+          Shifts
+        </Link>
+        <Link
+          href="/create-shift"
+          className="text-blue-600 hover:underline text-lg"
+        >
+          Create Shift
+        </Link>
+      </div>
       <div>
         {users?.map((user) => (
           <div key={user.ID} className="border rounded-lg p-4 my-4 shadow">
@@ -117,15 +128,6 @@ export default function Home() {
           >
             Update Name
           </button>
-        </div>
-
-        <div className="flex space-x-4 mt-6">
-          <Link href="/shifts" className="text-blue-600 hover:underline">
-            Shifts
-          </Link>
-          <Link href="/create-shift" className="text-blue-600 hover:underline">
-            Create Shift
-          </Link>
         </div>
       </div>
     </div>
