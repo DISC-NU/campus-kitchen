@@ -1,10 +1,10 @@
 "use client";
-
-import { useQuery } from "react-query";
+import { useMutation, useQuery } from "react-query";
 import { useEffect, useState } from "react";
 import { fetchUsers, getMeUser } from "../api";
 import React from "react";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 export const REDIRECT_URL = "http://127.0.0.1:8080/auth/google/callback";
 export const GOOGLE_OAUTH_CLIENT_ID =
@@ -50,8 +50,8 @@ export default function Home() {
     }
   }, []);
 
-  const updateUserName = async () => {
-    try {
+  const updateUserNameMutation = useMutation(
+    async () => {
       const response = await fetch("http://127.0.0.1:8080/users/me/name", {
         method: "POST",
         credentials: "include",
@@ -63,43 +63,65 @@ export default function Home() {
       if (!response.ok) {
         throw new Error("Failed to update user name");
       }
-      alert("Name updated successfully");
-    } catch (error) {
-      console.error("There was a problem updating the user name:", error);
+      return response.json(); // Assuming the server responds with JSON
+    },
+    {
+      onSuccess: () => {
+        toast.success("Name updated successfully");
+      },
     }
-  };
+  );
 
   return (
-    <>
-      <h1>Home</h1>
-      <div>
-        <p className="text-lg">welcome: {meUser?.Name ?? "not logged in"}</p>
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="flex justify-between items-center py-4">
+        <h1 className="text-2xl font-bold">Gaivn</h1>
+        {meUser ? (
+          <p className="text-lg">Welcome, {meUser.Name}</p>
+        ) : (
+          <Link
+            href={getGoogleUrl("/")}
+            className="text-blue-600 hover:underline"
+          >
+            Login with Google
+          </Link>
+        )}
       </div>
 
-      {users?.map((user) => (
-        <div key={user.ID} className="border py-2">
-          Name: {user.Name || "N/A"}, Email: {user.Email}, Type: {user.Type}
+      <div>
+        {users?.map((user) => (
+          <div key={user.ID} className="border rounded-lg p-4 my-4 shadow">
+            <p>Name: {user.Name || "N/A"}</p>
+            <p>Email: {user.Email}</p>
+            <p>Type: {user.Type}</p>
+          </div>
+        ))}
+
+        <div className="mt-6">
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="New Name"
+            className="border-2 border-gray-200 rounded-md p-2 mr-2"
+          />
+          <button
+            onClick={() => updateUserNameMutation.mutate()}
+            className="bg-blue-500 text-white rounded-md px-4 py-2 hover:bg-blue-600"
+          >
+            Update Name
+          </button>
         </div>
-      ))}
 
-      <div>
-        <input
-          type="text"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          placeholder="New Name"
-        />
-        <button onClick={updateUserName}>Update Name</button>
+        <div className="flex space-x-4 mt-6">
+          <Link href="/shifts" className="text-blue-600 hover:underline">
+            Shifts
+          </Link>
+          <Link href="/create-shift" className="text-blue-600 hover:underline">
+            Create Shift
+          </Link>
+        </div>
       </div>
-
-      <Link
-        className="text-blue-500 hover:underline cursor-pointer"
-        href={getGoogleUrl("/")}
-      >
-        Login with Google
-      </Link>
-      <Link href="/shifts">Shifts</Link>
-      <Link href="/create-shift">Create Shift</Link>
-    </>
+    </div>
   );
 }

@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS shift_volunteers (
     user_id INT NOT NULL,
     shift_id INT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (shift_id) REFERENCES shifts(id)
 );
 
 CREATE TABLE IF NOT EXISTS volunteer_completed_shifts (

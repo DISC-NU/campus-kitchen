@@ -11,6 +11,7 @@ const inter = Inter({ subsets: ["latin"] });
 // };
 
 import { QueryClient, QueryClientProvider } from "react-query";
+import { Toaster } from "react-hot-toast";
 
 const queryClient = new QueryClient();
 
@@ -20,11 +21,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <html lang="en">
+    <html lang="en">
+      <QueryClientProvider client={queryClient}>
+        <Toaster />
         <body className={inter.className}>{children}</body>
-      </html>
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </html>
   );
 }
 

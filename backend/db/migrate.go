@@ -13,6 +13,16 @@ func RunMigrations(dsn string) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		sourceErr, databaseErr := m.Close()
+		if sourceErr != nil {
+			log.Println("Closing migration source failed: ", sourceErr)
+		}
+		if databaseErr != nil {
+			log.Println("Closing migration database failed: ", databaseErr)
+		}
+		log.Println("Migrations sources closed")
+	}()
 	err = m.Up()
 	if err != nil {
 		log.Println("Running migrations: ", err)

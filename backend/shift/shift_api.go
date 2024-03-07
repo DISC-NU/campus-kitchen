@@ -5,6 +5,7 @@ import (
 	"backend/db"
 	"backend/endpoint"
 	"log"
+	"strconv"
 	"time"
 
 	server_error "backend/error"
@@ -572,11 +573,62 @@ func (api *API) HandleGetShifts(w http.ResponseWriter, r *http.Request) {
 	endpoint.WriteWithStatus(w, http.StatusOK, shifts)
 }
 
+func (api *API) HandleRegisterVolunteerForShift(w http.ResponseWriter, r *http.Request) {
+	
+	shift_id_param := chi.URLParam(r, "id")
+
+	shift_id, err := strconv.ParseInt(shift_id_param, 10, 32)
+	if err != nil {
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// check if user is authenticated and if user is volunteer
+
+	ctx := r.Context()
+	userID, err := auth.UserIDFromContext(ctx)
+	if err != nil {
+		log.Printf("Error get user id from context: %v", err)
+		endpoint.WriteWithError(w, http.StatusUnauthorized, server_error.ErrUnauthorized)
+		return
+	}
+
+	// get user using user id
+	user, err := api.q.GetUser(ctx, int32(userID))
+	if err != nil {
+		log.Printf("Error get user from database: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// check if user is volunteer
+	if user.Type != db.UsersTypeVolunteer {
+		log.Printf("User is not a volunteer")
+		endpoint.WriteWithError(w, http.StatusUnauthorized, server_error.ErrNotVolunteer)
+		return
+	}
+
+	// register volunteer for shift
+	_, err = api.q.CreateShiftVolunteer(ctx, db.CreateShiftVolunteerParams{
+		UserID:  int32(userID),
+		ShiftID: int32(shift_id),
+	})
+
+	if err != nil {
+		log.Printf("Error register volunteer for shift: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	endpoint.WriteWithStatus(w, http.StatusCreated, "volunteer registered for shift")
+}
+
 func (api *API) RegisterHandlers(r chi.Router, auth_guard func(http.Handler) http.Handler) {
 	r.Route("/shifts", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(auth_guard)
 			r.Post("/", api.HandleCreateShift)
+			r.Post("/{id}/volunteer", api.HandleRegisterVolunteerForShift)
 		})
 		r.Get("/", api.HandleGetShifts)
 	})
