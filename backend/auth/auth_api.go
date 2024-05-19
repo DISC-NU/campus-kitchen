@@ -9,7 +9,7 @@ import (
 	// "backend/validator"
 	"database/sql"
 	"errors"
-	"fmt"
+	// "fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -42,7 +42,7 @@ func (api *API) HandleGoogleOauth(w http.ResponseWriter, r *http.Request) {
 	// pathUrl := "/"
 
 	// if query.Get("state") != "" {
-		// pathUrl = query.Get("state")
+	// pathUrl = query.Get("state")
 	// }
 
 	if code == "" {
@@ -110,17 +110,18 @@ func (api *API) HandleGoogleOauth(w http.ResponseWriter, r *http.Request) {
 		Value:  token,
 		Path:   "/",
 		Domain: "",
-		MaxAge: api.config.TokenMaxAge,
+		// MaxAge: api.config.TokenMaxAge,
 		SameSite: http.SameSiteNoneMode,
 		Secure:   true,
+		HttpOnly: true,
 	}
 	log.Println("cookie", cookie)
 
 	http.SetCookie(w, &cookie)
-	
+
 	// attach token to the redirect url
-	redirect_url := fmt.Sprintf("%s?token=%s", api.config.FrontEndOrigin, token)
-	http.Redirect(w, r, redirect_url, http.StatusFound)
+	// redirect_url := fmt.Sprintf("%s?token=%s", api.config.FrontEndOrigin, token)
+	http.Redirect(w, r, api.config.FrontEndOrigin, http.StatusFound)
 
 }
 

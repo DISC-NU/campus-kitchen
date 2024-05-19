@@ -3,6 +3,7 @@ package auth
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -27,17 +28,20 @@ func (api API) VerifyToken(tokenString string) (int, error) {
 	})
 
 	if err != nil {
+		log.Printf("issue parsing token: %v", err)
 		return -1, fmt.Errorf("issue parsing token: %w", err)
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		userID, ok := claims["userID"]
 		if !ok {
+			log.Printf("userID not found in claims: %v", claims)
 			return -1, errors.New("invalid token")
 		}
 
 		userIDf, ok := userID.(float64)
 		if !ok {
+			log.Printf("issue parsing userID: %v", userID)
 			return -1, fmt.Errorf("issue parsing userID: %w", err)
 		}
 

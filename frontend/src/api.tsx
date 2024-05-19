@@ -23,8 +23,7 @@ export type Shift = {
 export async function parseOrThrowResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const errMsg = await res.json();
-    console.error("error response", errMsg.message);
-      // toast.error("Something went wrong: " + errMsg.message || "An error occurred");
+    // toast.error("Something went wrong: " + errMsg.message || "An error occurred");
     throw new Error(errMsg);
   }
   return res.json();

@@ -24,21 +24,12 @@ export default function RootLayout({
     <>
       <html lang="en">
         <QueryClientProvider client={queryClient}>
-        {/* <Toaster /> */}
-          <body className={inter.className}>{children}</body>
+          <body className={inter.className}>
+            <Toaster />
+            {children}
+          </body>
         </QueryClientProvider>
       </html>
     </>
   );
 }
-
-// import { Outlet } from "react-router-dom";
-
-// const queryClient = new QueryClient();
-// export default function RootLayout() {
-//   return (
-//     <QueryClientProvider client={queryClient}>
-//       <Outlet />
-//     </QueryClientProvider>
-//   );
-// }

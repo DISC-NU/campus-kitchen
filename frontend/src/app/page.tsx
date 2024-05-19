@@ -1,16 +1,16 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "react-query";
-import { useEffect, useState } from "react";
+import {  useState } from "react";
 import { fetchUsers, getMeUser } from "../api";
 import React from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
-export const REDIRECT_URL = "http://127.0.0.1:8080/auth/google/callback";
-export const GOOGLE_OAUTH_CLIENT_ID =
+const REDIRECT_URL = "http://127.0.0.1:8080/auth/google/callback";
+const GOOGLE_OAUTH_CLIENT_ID =
   "519346730061-q5i3t15ji2r3fsrt88od7gsn92c0bhv8.apps.googleusercontent.com";
 
-export const getGoogleUrl = (state: string) => {
+const getGoogleUrl = (state: string) => {
   const rootUrl = `https://accounts.google.com/o/oauth2/v2/auth`;
 
   const options = {
@@ -33,22 +33,24 @@ export default function Home() {
     queryKey: ["me"],
     queryFn: getMeUser,
   });
+
+  console.log(meUser)
   const { data: users } = useQuery({
     queryKey: ["users"],
     queryFn: fetchUsers,
   });
   const [newName, setNewName] = useState("");
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
+  // useEffect(() => {
+  //   const params = new URLSearchParams(window.location.search);
+  //   const token = params.get("token");
 
-    if (token) {
-      console.log("Token:", token);
-      document.cookie = `token=${token}`;
-      window.history.replaceState({}, document.title, "/");
-    }
-  }, []);
+  //   if (token) {
+  //     console.log("Token:", token);
+  //     document.cookie = `token=${token}`;
+  //     window.history.replaceState({}, document.title, "/");
+  //   }
+  // }, []);
 
   const queryClient = useQueryClient();
 

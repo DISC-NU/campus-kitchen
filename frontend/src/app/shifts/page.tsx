@@ -16,14 +16,6 @@ function DisplayShifts() {
     {
       onSuccess: () => {
         toast.success("Signed up for shift successfully");
-        // Optionally, invalidate or refetch shifts query to update the UI
-      },
-      onError: (error: any) => {
-        toast.error(
-          `Error signing up for shift: ${error.message || "An error occurred"}`
-        );
-        // console.log(error)
-        // toast.error(`Error signing up for shift: ${error || "An error occurred"}`);
       },
     }
   );
