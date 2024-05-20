@@ -527,7 +527,7 @@ func (api *API) HandleCreateShift(w http.ResponseWriter, r *http.Request) {
 	user, err := api.q.GetUser(ctx, int32(userID))
 	if err != nil {
 		log.Printf("Error get user from database: %v", err)
-		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		endpoint.WriteWithError(w, http.StatusInternalServerError, "please login")
 		return
 	}
 
@@ -546,7 +546,7 @@ func (api *API) HandleCreateShift(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create shift
-	_, err = api.q.CreateShift(ctx, db.CreateShiftParams{
+	result, err := api.q.CreateShift(ctx, db.CreateShiftParams{
 		StartTime: input.StartTime,
 		EndTime:   input.EndTime,
 		Type:      db.ShiftsType(input.Type),
@@ -557,6 +557,28 @@ func (api *API) HandleCreateShift(w http.ResponseWriter, r *http.Request) {
 		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	shift_id, err := result.LastInsertId()
+	if err != nil {
+		log.Printf("Error get shift id: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// add user id and shift id to shift_leaders table
+
+	_, err = api.q.AddShiftLeaderForShift(ctx, db.AddShiftLeaderForShiftParams{
+		UserID:  int32(userID),
+		ShiftID: int32(shift_id),
+	})
+
+	if err != nil {
+		log.Printf("Error add shift leader for shift: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// now add user id and shift id to shift_leaders table
 
 	endpoint.WriteWithStatus(w, http.StatusCreated, "shift created")
 }
@@ -644,19 +666,45 @@ func (api *API) HandleGetShiftLeadersForShift(w http.ResponseWriter, r *http.Req
 }
 
 type GetShiftResponse struct {
-	Shift      db.Shift  `json:"shift"`
-	Volunteers []db.User `json:"volunteers"`
-	Leaders    []db.User `json:"leaders"`
+	Shift               db.Shift  `json:"shift"`
+	Volunteers          []db.User `json:"volunteers"`
+	Leaders             []db.User `json:"leaders"`
+	CompletedVolunteers []db.User `json:"completed_volunteers"`
+	IsRegistered        bool      `json:"is_registered"`
 }
 
 func (api *API) HandleGetShift(w http.ResponseWriter, r *http.Request) {
 
 	shift_id_param := chi.URLParam(r, "id")
 
+	userID, err := auth.UserIDFromContext(r.Context())
+	if err != nil {
+		log.Printf("Error get user id from context: %v", err)
+		endpoint.WriteWithError(w, http.StatusUnauthorized, server_error.ErrUnauthorized)
+		return
+	}
+
 	shift_id, err := strconv.ParseInt(shift_id_param, 10, 32)
 	if err != nil {
 		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	isRegistered := true
+	_, err = api.q.IsRegisteredForShift(r.Context(), db.IsRegisteredForShiftParams{
+		UserID:  int32(userID),
+		ShiftID: int32(shift_id),
+	})
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			log.Printf("Error get user from database: %v", err)
+			isRegistered = false
+		} else {
+
+			log.Printf("Error get user from database: %v", err)
+			endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 
 	shift, err := api.q.GetShift(r.Context(), int32(shift_id))
@@ -680,6 +728,13 @@ func (api *API) HandleGetShift(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	completed_volunteers, err := api.q.GetCompletedVolunteersForShift(r.Context(), int32(shift_id))
+	if err != nil {
+		log.Printf("Error get completed shift volunteers for shift from database: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	// if volunteerr or leader is null return []
 	if volunteers == nil {
 		volunteers = []db.User{}
@@ -687,14 +742,285 @@ func (api *API) HandleGetShift(w http.ResponseWriter, r *http.Request) {
 	if leaders == nil {
 		leaders = []db.User{}
 	}
+	if completed_volunteers == nil {
+		completed_volunteers = []db.User{}
+	}
 
 	resp := GetShiftResponse{
-		Shift:      shift,
-		Volunteers: volunteers,
-		Leaders:    leaders,
+		Shift:               shift,
+		Volunteers:          volunteers,
+		CompletedVolunteers: completed_volunteers,
+		Leaders:             leaders,
+		IsRegistered:        isRegistered,
 	}
 
 	endpoint.WriteWithStatus(w, http.StatusOK, resp)
+}
+
+// // handle delete volunteer for shift
+// type DeleteVolunteerForShiftRequest struct {
+// 	ShiftID int32 `json:"shift_id" validate:"required"`
+// }
+
+func (api *API) HandleDeleteVolunteerForShift(w http.ResponseWriter, r *http.Request) {
+	// check if user is authenticated and if user is volunteer
+
+	ctx := r.Context()
+	userID, err := auth.UserIDFromContext(ctx)
+	if err != nil {
+		log.Printf("Error get user id from context: %v", err)
+		endpoint.WriteWithError(w, http.StatusUnauthorized, server_error.ErrUnauthorized)
+		return
+	}
+
+	// get user using user id
+	user, err := api.q.GetUser(ctx, int32(userID))
+	if err != nil {
+		log.Printf("Error get user from database: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// check if user is volunteer
+	if user.Type != db.UsersTypeVolunteer {
+		log.Printf("User is not a volunteer")
+		endpoint.WriteWithError(w, http.StatusUnauthorized, server_error.ErrNotVolunteer)
+		return
+	}
+
+	// decode and validate input
+	// var input DeleteVolunteerForShiftRequest
+	// err = endpoint.DecodeAndValidateJson(w, r, api.validator, &input)
+	// if err != nil {
+	// 	return
+	// }
+	shift_id_param := chi.URLParam(r, "id")
+
+	shift_id, err := strconv.ParseInt(shift_id_param, 10, 32)
+	if err != nil {
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// delete volunteer for shift
+	_, err = api.q.DeleteShiftVolunteer(ctx, db.DeleteShiftVolunteerParams{
+		UserID:  int32(userID),
+		ShiftID: int32(shift_id),
+	})
+
+	if err != nil {
+		log.Printf("Error delete volunteer for shift: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	endpoint.WriteWithStatus(w, http.StatusOK, "volunteer deleted for shift")
+}
+
+func (api *API) HandleDeleteShift(w http.ResponseWriter, r *http.Request) {
+	// check if user is authenticated and if user is shift leader
+
+	ctx := r.Context()
+	userID, err := auth.UserIDFromContext(ctx)
+	if err != nil {
+		log.Printf("Error get user id from context: %v", err)
+		endpoint.WriteWithError(w, http.StatusUnauthorized, server_error.ErrUnauthorized)
+		return
+	}
+
+	// get user using user id
+	user, err := api.q.GetUser(ctx, int32(userID))
+	if err != nil {
+		log.Printf("Error get user from database: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// check if user is shift leader
+	if user.Type != db.UsersTypeShiftLead {
+		log.Printf("User is not a shift leader")
+		endpoint.WriteWithError(w, http.StatusUnauthorized, server_error.ErrUnauthorized)
+		return
+	}
+
+	shift_id_param := chi.URLParam(r, "id")
+
+	shift_id, err := strconv.ParseInt(shift_id_param, 10, 32)
+	if err != nil {
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// delete shift leaders
+	_, err = api.q.DeleteShiftLeadersWithShiftId(ctx, int32(shift_id))
+	if err != nil {
+		log.Printf("Error delete shift leaders: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// delete shift volunteers
+	_, err = api.q.DeleteShiftVolunteersWithShiftId(ctx, int32(shift_id))
+	if err != nil {
+		log.Printf("Error delete shift volunteers: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// delete shift
+	_, err = api.q.DeleteShift(ctx, int32(shift_id))
+	if err != nil {
+		log.Printf("Error delete shift: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	endpoint.WriteWithStatus(w, http.StatusOK, "shift deleted")
+}
+
+type DeleteVolunteerForShiftByShiftLeaderRequest struct {
+	VolunteerID int32 `json:"volunteer_id" validate:"required"`
+}
+
+func (api *API) HandleDeleteVolunteerForShiftByShiftLeader(w http.ResponseWriter, r *http.Request) {
+	// check if user is authenticated and if user is shift leader
+
+	ctx := r.Context()
+	userID, err := auth.UserIDFromContext(ctx)
+	if err != nil {
+		log.Printf("Error get user id from context: %v", err)
+		endpoint.WriteWithError(w, http.StatusUnauthorized, server_error.ErrUnauthorized)
+		return
+	}
+
+	// get user using user id
+	user, err := api.q.GetUser(ctx, int32(userID))
+	if err != nil {
+		log.Printf("Error get user from database: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// check if user is shift leader
+	if user.Type != db.UsersTypeShiftLead {
+		log.Printf("User is not a shift leader")
+		endpoint.WriteWithError(w, http.StatusUnauthorized, server_error.ErrUnauthorized)
+		return
+	}
+
+	shift_id_param := chi.URLParam(r, "id")
+
+	shift_id, err := strconv.ParseInt(shift_id_param, 10, 32)
+	if err != nil {
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// decode and validate input
+	var input DeleteVolunteerForShiftByShiftLeaderRequest
+	err = endpoint.DecodeAndValidateJson(w, r, api.validator, &input)
+	if err != nil {
+		return
+	}
+
+	// delete volunteer for shift
+	_, err = api.q.DeleteShiftVolunteer(ctx, db.DeleteShiftVolunteerParams{
+		UserID:  int32(input.VolunteerID),
+		ShiftID: int32(shift_id),
+	})
+
+	if err != nil {
+		log.Printf("Error delete volunteer for shift: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	endpoint.WriteWithStatus(w, http.StatusOK, "volunteer deleted for shift")
+}
+
+func (api *API) HandleRecordShift(w http.ResponseWriter, r *http.Request) {
+	// check if user is authenticated and if user is shift leader
+
+	ctx := r.Context()
+	userID, err := auth.UserIDFromContext(ctx)
+	if err != nil {
+		log.Printf("Error get user id from context: %v", err)
+		endpoint.WriteWithError(w, http.StatusUnauthorized, server_error.ErrUnauthorized)
+		return
+	}
+
+	// get user using user id
+	user, err := api.q.GetUser(ctx, int32(userID))
+	if err != nil {
+		log.Printf("Error get user from database: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// check if user is shift leader
+	if user.Type != db.UsersTypeShiftLead {
+		log.Printf("User is not a shift leader")
+		endpoint.WriteWithError(w, http.StatusUnauthorized, server_error.ErrUnauthorized)
+		return
+	}
+
+	shift_id_param := chi.URLParam(r, "id")
+
+	shift_id, err := strconv.ParseInt(shift_id_param, 10, 32)
+	if err != nil {
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// record shift
+	_, err = api.q.RecordShiftCompletion(ctx, int32(shift_id))
+	if err != nil {
+		log.Printf("Error record shift: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	_, err = api.q.SetShiftCompleted(ctx, int32(shift_id))
+	if err != nil {
+		log.Printf("Error mark shift as completed: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	endpoint.WriteWithStatus(w, http.StatusOK, "shift recorded")
+}
+
+func (api *API) HandleGetShiftsByUserID(w http.ResponseWriter, r *http.Request) {
+	userID, err := auth.UserIDFromContext(r.Context())
+	if err != nil {
+		log.Printf("Error get user id from context: %v", err)
+		endpoint.WriteWithError(w, http.StatusUnauthorized, server_error.ErrUnauthorized)
+		return
+	}
+
+	usr, err := api.q.GetUser(r.Context(), int32(userID))
+	if err != nil {
+		log.Printf("Error get user from database: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if usr.Type == db.UsersTypeVolunteer {
+		shifts, err := api.q.GetVolunteerShifts(r.Context(), int32(userID))
+		if err != nil {
+			log.Printf("Error get completed shifts for volunteer from database: %v", err)
+			endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		endpoint.WriteWithStatus(w, http.StatusOK, shifts)
+	} else {
+		shifts, err := api.q.GetShiftLeaderShifts(r.Context(), int32(userID))
+		if err != nil {
+			log.Printf("Error get completed shifts for shift lead from database: %v", err)
+			endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		endpoint.WriteWithStatus(w, http.StatusOK, shifts)
+	}
 }
 
 func (api *API) RegisterHandlers(r chi.Router, auth_guard func(http.Handler) http.Handler) {
@@ -703,8 +1029,13 @@ func (api *API) RegisterHandlers(r chi.Router, auth_guard func(http.Handler) htt
 			r.Use(auth_guard)
 			r.Post("/", api.HandleCreateShift)
 			r.Post("/{id}/volunteer", api.HandleRegisterVolunteerForShift)
+			r.Delete("/{id}/volunteer", api.HandleDeleteVolunteerForShift)
+			r.Delete("/{id}/volunteer/leader", api.HandleDeleteVolunteerForShiftByShiftLeader)
+			r.Delete("/{id}", api.HandleDeleteShift)
+			r.Post("/{id}/record", api.HandleRecordShift)
+			r.Get("/{id}", api.HandleGetShift)
+			r.Get("/me", api.HandleGetShiftsByUserID)
 		})
-		r.Get("/{id}", api.HandleGetShift)
 		r.Get("/", api.HandleGetShifts)
 	})
 }

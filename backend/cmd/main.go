@@ -93,6 +93,7 @@ func setupHandler(r chi.Router, conn *db.DB, validator *validator.Validate, conf
 func Cors() func(http.Handler) http.Handler {
 	return cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:3001"}, // Specify the exact origin
+		AllowedMethods:  []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowCredentials: true,
 	})
 }

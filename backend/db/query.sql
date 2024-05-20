@@ -76,6 +76,9 @@ UPDATE shifts
 SET start_time = ?, end_time = ?, type = ?
 WHERE shifts.id = ?;
 
+-- name: AddShiftLeaderForShift :execresult
+INSERT INTO shift_leaders (user_id, shift_id) VALUES (?, ?);
+
 -- name: DeleteShift :execresult
 DELETE FROM shifts
 WHERE shifts.id = ?;
@@ -99,3 +102,49 @@ VALUES (?, ?);
 -- name: DeleteShiftVolunteer :execresult
 DELETE FROM shift_volunteers
 WHERE shift_volunteers.user_id = ? AND shift_volunteers.shift_id = ?;
+
+-- name: DeleteShiftLeadersWithShiftId :execresult
+DELETE FROM shift_leaders
+WHERE shift_leaders.shift_id = ?;
+
+-- name: DeleteShiftVolunteersWithShiftId :execresult
+DELETE FROM shift_volunteers
+WHERE shift_volunteers.shift_id = ?;
+
+-- name: IsRegisteredForShift :one
+SELECT * FROM shift_volunteers
+WHERE shift_volunteers.user_id = ? AND shift_volunteers.shift_id = ?;
+
+-- name: RecordShiftCompletion :execresult
+INSERT INTO volunteer_completed_shifts (user_id, shift_id)
+SELECT user_id, shift_id
+FROM shift_volunteers
+WHERE shift_volunteers.shift_id = ?;
+
+-- name: SetShiftCompleted :execresult
+UPDATE shifts
+SET completed = TRUE
+WHERE shifts.id = ?;
+
+-- name: GetCompletedVolunteersForShift :many
+SELECT users.id, users.name, users.email, users.phone, users.type
+FROM users
+JOIN volunteer_completed_shifts ON users.id = volunteer_completed_shifts.user_id
+WHERE volunteer_completed_shifts.shift_id = ?;
+
+-- name: GetVolunteerShifts :many
+SELECT shifts.id, shifts.start_time, shifts.end_time, shifts.type, shifts.completed
+FROM shifts
+JOIN shift_volunteers ON shifts.id = shift_volunteers.shift_id
+WHERE shift_volunteers.user_id = ?;
+
+-- name: GetShiftLeaderShifts :many
+SELECT shifts.id, shifts.start_time, shifts.end_time, shifts.type, shifts.completed
+FROM shifts
+JOIN shift_leaders ON shifts.id = shift_leaders.shift_id
+WHERE shift_leaders.user_id = ?;
+
+-- name: BecomeLeaderRole :execresult
+UPDATE users
+SET type = 'shift_lead'
+WHERE users.id = ?;

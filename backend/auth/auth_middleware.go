@@ -36,6 +36,7 @@ func (api API) Auth() func(next http.Handler) http.Handler {
 				return
 			}
 			token_int := strings.Split(token.String(), "=")[1]
+      log.Println("token: " + token_int)
 			userID, err := api.VerifyToken(token_int)
 			if err != nil {
 				log.Printf("handler: issue verifying jwt token: %v", err)

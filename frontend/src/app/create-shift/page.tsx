@@ -14,8 +14,8 @@ function CreateShift() {
 
   const router = useRouter();
   const mutation = useMutation(createShift, {
-    onError: (error: any) => {
-      console.error(error);
+    onError(error: { message: string }) {
+      toast.error(error.message);
     },
     onSuccess: () => {
       toast.success("Shift created");

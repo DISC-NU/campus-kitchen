@@ -5,10 +5,12 @@ import (
 	"backend/db"
 	"backend/endpoint"
 	server_error "backend/error"
+	"fmt"
 
 	// "backend/validator"
 	"database/sql"
 	"errors"
+
 	// "fmt"
 	"log"
 	"net/http"
@@ -76,7 +78,7 @@ func (api *API) HandleGoogleOauth(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, sql.ErrNoRows) {
 			res, err := api.q.CreateUser(r.Context(), db.CreateUserParams{
 				Email: strings.ToLower(user.Email),
-				Name:  user.Name,
+				Name:  "Volunteer",
 				Type:  db.UsersTypeVolunteer,
 			})
 			if err != nil {
@@ -120,8 +122,10 @@ func (api *API) HandleGoogleOauth(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &cookie)
 
 	// attach token to the redirect url
-	// redirect_url := fmt.Sprintf("%s?token=%s", api.config.FrontEndOrigin, token)
-	http.Redirect(w, r, api.config.FrontEndOrigin, http.StatusFound)
+	redirect_url := fmt.Sprintf("%s?token=%s", api.config.FrontEndOrigin, token)
+
+	http.Redirect(w, r, redirect_url, http.StatusFound)
+	// http.Redirect(w, r, api.config.FrontEndOrigin, http.StatusFound)
 
 }
 

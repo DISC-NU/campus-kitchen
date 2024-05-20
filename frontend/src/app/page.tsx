@@ -1,11 +1,19 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "react-query";
-import {  useState } from "react";
-import { fetchUsers, getMeUser } from "../api";
+import { useEffect, useState } from "react";
+import {
+  fetchUsers,
+  getMeUser,
+  getShiftsByUserId,
+  postGetLeaderRole,
+} from "../api";
 import React from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import dayjs from "dayjs";
 
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
 const REDIRECT_URL = "http://127.0.0.1:8080/auth/google/callback";
 const GOOGLE_OAUTH_CLIENT_ID =
   "519346730061-q5i3t15ji2r3fsrt88od7gsn92c0bhv8.apps.googleusercontent.com";
@@ -33,24 +41,25 @@ export default function Home() {
     queryKey: ["me"],
     queryFn: getMeUser,
   });
-
-  console.log(meUser)
-  const { data: users } = useQuery({
-    queryKey: ["users"],
-    queryFn: fetchUsers,
+  const { data: meShifts } = useQuery({
+    queryKey: ["meShifts"],
+    queryFn: getShiftsByUserId,
   });
+
+  console.log(meUser);
+  console.log(meShifts);
   const [newName, setNewName] = useState("");
 
-  // useEffect(() => {
-  //   const params = new URLSearchParams(window.location.search);
-  //   const token = params.get("token");
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
 
-  //   if (token) {
-  //     console.log("Token:", token);
-  //     document.cookie = `token=${token}`;
-  //     window.history.replaceState({}, document.title, "/");
-  //   }
-  // }, []);
+    if (token) {
+      console.log("Token:", token);
+      document.cookie = `token=${token}`;
+      window.history.replaceState({}, document.title, "/");
+    }
+  }, []);
 
   const queryClient = useQueryClient();
 
@@ -77,6 +86,21 @@ export default function Home() {
     }
   );
 
+  const [userPin, setUserPin] = useState("");
+
+  const becomeShiftLeadMutation = useMutation(
+    async () => postGetLeaderRole(userPin),
+    {
+      onSuccess: () => {
+        toast.success("You are now a shift lead");
+        queryClient.invalidateQueries("me");
+      },
+      onError: (error) => {
+        // toast.error(error.message);
+      },
+    }
+  );
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex justify-between items-center py-4">
@@ -96,26 +120,46 @@ export default function Home() {
         )}
       </div>
 
-      <div className="flex space-x-4 mt-3">
-        <Link href="/shifts" className="text-blue-600 hover:underline text-lg">
-          Shifts
-        </Link>
-        <Link
-          href="/create-shift"
-          className="text-blue-600 hover:underline text-lg"
-        >
-          Create Shift
-        </Link>
-      </div>
-      <div>
-        {users?.map((user) => (
-          <div key={user.ID} className="border rounded-lg p-4 my-4 shadow">
-            <p>Name: {user.Name || "N/A"}</p>
-            <p>Email: {user.Email}</p>
-            <p>Type: {user.Type}</p>
-          </div>
-        ))}
+      {meUser?.Type === "shift_lead" && (
+        <div className="flex space-x-4 mt-3">
+          <Link
+            href="/shifts"
+            className="text-blue-600 hover:underline text-lg"
+          >
+            Shifts
+          </Link>
+          <Link
+            href="/create-shift"
+            className="text-blue-600 hover:underline text-lg"
+          >
+            Create Shift
+          </Link>
+        </div>
+      )}
 
+      {/* display shifts  */}
+
+      <div className="mt-6">
+        <h2 className="text-lg font-semibold">Your Shifts</h2>
+        <ul>
+          {meShifts?.map((shift) => (
+            <div key={shift.ID} className="border rounded p-2 w-fit ">
+              <Link href={`/shifts/${shift.ID}`}>
+                <h2 className="font-bold text-lg">Type: {shift.Type}</h2>
+                <p>
+                  Start: {dayjs(shift.StartTime).format("MMMM D, YYYY h:mm A")}
+                </p>
+                <p>End: {dayjs(shift.EndTime).format("MMMM D, YYYY h:mm A")}</p>
+                <p className="text-sm text-gray-600">
+                  Starts {dayjs(shift.StartTime).fromNow()}
+                </p>
+              </Link>
+            </div>
+          ))}
+        </ul>
+      </div>
+
+      <div>
         <div className="mt-6">
           <input
             type="text"
@@ -131,6 +175,41 @@ export default function Home() {
             Update Name
           </button>
         </div>
+
+        {/* become shift leader button */}
+
+        {meUser?.Type === "volunteer" && (
+          <div className="">
+            <input
+              type="text"
+              value={userPin}
+              onChange={(e) => setUserPin(e.target.value)}
+              placeholder="PIN"
+              className="border-2 border-gray-200 rounded-md p-2 mr-2"
+            />
+            <button
+              onClick={() => becomeShiftLeadMutation.mutate()}
+              className="mt-4 bg-green-500 text-white rounded-md px-4 py-2 hover:bg-green-600"
+            >
+              Become Shift Lead
+            </button>
+          </div>
+        )}
+
+        {/* sign out  */}
+
+        <button
+          onClick={() => {
+            document.cookie =
+              "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            queryClient.clear();
+            // reload the page
+            window.location.reload();
+          }}
+          className="mt-4 bg-red-500 text-white rounded-md px-4 py-2 hover:bg-red-600"
+        >
+          Sign Out
+        </button>
       </div>
     </div>
   );

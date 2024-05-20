@@ -129,12 +129,48 @@ func (api *API) HandleUpdateUserName(w http.ResponseWriter, r *http.Request) {
 	endpoint.WriteWithStatus(w, http.StatusOK, "update success")
 }
 
+type GetLeaderRequest struct {
+	PIN string `json:"pin" validate:"required"`
+}
+
+func (api *API) HandleGetLeader(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, err := auth.UserIDFromContext(ctx)
+	if err != nil {
+		log.Printf("Error get user id from context: %v", err)
+		endpoint.WriteWithError(w, http.StatusUnauthorized, server_error.ErrUnauthorized)
+		return
+	}
+
+	var input GetLeaderRequest
+
+	err = endpoint.DecodeAndValidateJson(w, r, api.validator, &input)
+	if err != nil {
+		return
+	}
+
+	if input.PIN != "1234" {
+		endpoint.WriteWithError(w, http.StatusUnauthorized, "Invalid PIN")
+		return
+	}
+
+	_, err = api.q.BecomeLeaderRole(r.Context(), int32(userID))
+	if err != nil {
+		log.Printf("Error get leader from database: %v", err)
+		endpoint.WriteWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	endpoint.WriteWithStatus(w, http.StatusOK, "update success")
+}
+
 func (api *API) RegisterHandlers(r chi.Router, auth_guard func(http.Handler) http.Handler) {
 	r.Route("/users", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(auth_guard)
 			r.Get("/me", api.HandleGetMe)
 			r.Post("/me/name", api.HandleUpdateUserName)
+			r.Post("/leader", api.HandleGetLeader)
 		})
 		r.Get("/", api.HandleGetUsers)
 		r.Get("/{id}", api.HandleGetUser)

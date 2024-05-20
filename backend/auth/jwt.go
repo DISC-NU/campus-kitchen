@@ -15,6 +15,7 @@ func (api API) GenerateToken(userID int) (string, error) {
 		"userID": userID,
 		"exp":    time.Now().Add(time.Duration(api.config.TokenMaxAge) * time.Hour).Unix(),
 	})
+  log.Println("token", token)
 	return token.SignedString([]byte(api.config.JWTTokenSecret))
 }
 

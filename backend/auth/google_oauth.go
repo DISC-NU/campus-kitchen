@@ -90,7 +90,7 @@ func GetGoogleUser(access_token string, id_token string) (*GoogleUserResult, err
 		return nil, err
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", id_token))
+	req.Header.Set("Authorization", fmt.Sprintf("%s", id_token))
 
 	client := http.Client{
 		Timeout: time.Second * 30,
